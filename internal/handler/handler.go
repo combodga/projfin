@@ -204,7 +204,7 @@ func (h *Handler) GetOrders(c echo.Context) error {
 	for _, order := range orders {
 		ordersList = append(ordersList, Order{order.OrderNumber, order.Status, order.Accrual, order.UploadedAt})
 	}
-
+	fmt.Println("GetOrders", username, ordersList)
 	return c.JSON(http.StatusOK, ordersList)
 }
 
@@ -256,6 +256,7 @@ func (h *Handler) GetAccruals() error {
 			if err != nil {
 				return fmt.Errorf("update accrual order error: %w", err)
 			}
+			fmt.Println("GetAccurals", status, accrual)
 			if status == "INVALID" {
 				err = h.Store.InvalidateOrder(order.OrderNumber)
 				if err != nil {
@@ -268,6 +269,6 @@ func (h *Handler) GetAccruals() error {
 				}
 			}
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1500 * time.Millisecond)
 	}
 }
