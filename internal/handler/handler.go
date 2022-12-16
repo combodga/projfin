@@ -205,8 +205,6 @@ func (h *Handler) GetOrders(c echo.Context) error {
 		ordersList = append(ordersList, Order{order.OrderNumber, order.Status, order.Accrual, order.UploadedAt})
 	}
 
-	fmt.Println(username, ordersList)
-
 	return c.JSON(http.StatusOK, ordersList)
 }
 
@@ -270,6 +268,6 @@ func (h *Handler) GetAccruals() error {
 				}
 			}
 		}
-		time.Sleep(500)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
