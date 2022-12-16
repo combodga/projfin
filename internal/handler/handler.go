@@ -205,6 +205,8 @@ func (h *Handler) GetOrders(c echo.Context) error {
 		ordersList = append(ordersList, Order{order.OrderNumber, order.Status, order.Accrual, order.UploadedAt})
 	}
 
+	fmt.Println(username, ordersList)
+
 	return c.JSON(http.StatusOK, ordersList)
 }
 
