@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type Accrual struct {
@@ -19,6 +21,15 @@ func Calculate(accr, orderNumber string) (string, float64, error) {
 		return "", 0, fmt.Errorf("error getting accrual: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		retryAfter, err := strconv.Atoi(resp.Header.Get("Retry-After"))
+		if err != nil {
+			return "", 0, fmt.Errorf("error getting retry timeout: %w", err)
+		}
+		time.Sleep(time.Duration(retryAfter) * time.Second)
+		return "", 0, nil
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

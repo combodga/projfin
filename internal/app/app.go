@@ -28,9 +28,8 @@ func Go(run, database, accr string) error {
 	e.GET("/api/user/balance", h.GetBalance)
 	e.GET("/api/user/withdrawals", h.GetWithdrawals)
 
+	go h.FetchAccruals()
 	e.Logger.Fatal(e.Start(run))
-
-	go h.GetAccruals()
 
 	return nil
 }

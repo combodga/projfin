@@ -244,31 +244,37 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 	return c.JSON(http.StatusOK, withdrawalsList)
 }
 
-func (h *Handler) GetAccruals() error {
+func (h *Handler) FetchAccruals() error {
 	for {
-		orders, err := h.Store.OrdersProcessing()
+		h.GetAccruals()
+		time.Sleep(300 * time.Millisecond)
+	}
+}
+
+func (h *Handler) GetAccruals() error {
+	orders, err := h.Store.OrdersProcessing()
+	if err != nil {
+		return fmt.Errorf("update accrual error: %w", err)
+	}
+
+	for _, order := range orders {
+		status, accrual, err := accrual.Calculate(h.Accr, order.OrderNumber)
 		if err != nil {
-			return fmt.Errorf("update accrual error: %w", err)
+			return fmt.Errorf("update accrual order error: %w", err)
 		}
 
-		for _, order := range orders {
-			status, accrual, err := accrual.Calculate(h.Accr, order.OrderNumber)
+		if status == "INVALID" {
+			err = h.Store.InvalidateOrder(order.OrderNumber)
 			if err != nil {
-				return fmt.Errorf("update accrual order error: %w", err)
+				return fmt.Errorf("set order invalid error: %w", err)
 			}
-			fmt.Println("GetAccurals", status, accrual)
-			if status == "INVALID" {
-				err = h.Store.InvalidateOrder(order.OrderNumber)
-				if err != nil {
-					return fmt.Errorf("set order invalid error: %w", err)
-				}
-			} else if status == "PROCESSED" {
-				err = h.Store.ProcessOrder(order.OrderNumber, accrual)
-				if err != nil {
-					return fmt.Errorf("set order processed error: %w", err)
-				}
+		} else if status == "PROCESSED" {
+			err = h.Store.ProcessOrder(order.OrderNumber, accrual)
+			if err != nil {
+				return fmt.Errorf("set order processed error: %w", err)
 			}
 		}
-		time.Sleep(1500 * time.Millisecond)
 	}
+
+	return nil
 }
