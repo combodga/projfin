@@ -25,6 +25,11 @@ type Order struct {
 	Status      string  `db:"status"`
 	Accrual     float64 `db:"accrual"`
 	UploadedAt  string  `db:"uploaded_at"`
+}
+
+type Withdraw struct {
+	OrderNumber string  `db:"order_number"`
+	Username    string  `db:"username"`
 	Sum         float64 `db:"sum"`
 	ProcessedAt string  `db:"processed_at"`
 }
@@ -54,7 +59,12 @@ func New(database string) (*Store, error) {
             username text,
             status text,
             accrual double precision,
-            uploaded_at timestamp with time zone,
+            uploaded_at timestamp with time zone
+        );
+
+        CREATE TABLE IF NOT EXISTS withdrawals (
+            order_number text,
+            username text,
             sum double precision,
             processed_at timestamp with time zone
         );
@@ -173,7 +183,7 @@ func (s *Store) MakeOrder(username, orderNumber string) error {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW(), 0, NOW())", orderNumber, username)
+	_, err = db.Exec("INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())", orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -211,6 +221,38 @@ func (s *Store) ListOrders(username string) ([]Order, error) {
 			return result, fmt.Errorf("store scan error: %w", err)
 		}
 		result = append(result, order)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return result, fmt.Errorf("store get rows error: %w", err)
+	}
+
+	return result, nil
+}
+
+func (s *Store) ListWithdrawals(username string) ([]Withdraw, error) {
+	var result []Withdraw
+
+	db, err := sqlx.Connect("postgres", s.DB)
+	if err != nil {
+		return result, fmt.Errorf("store connect error: %w", err)
+	}
+	defer db.Close()
+
+	withdraw := Withdraw{}
+	rows, err := db.Queryx("SELECT * FROM withdrawals WHERE username = $1", username)
+	if err != nil {
+		return result, fmt.Errorf("store query rows error: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.StructScan(&withdraw)
+		if err != nil {
+			return result, fmt.Errorf("store scan error: %w", err)
+		}
+		result = append(result, withdraw)
 	}
 
 	err = rows.Err()
@@ -281,7 +323,7 @@ func (s *Store) Withdraw(username, orderNumber string, sum float64) (int, error)
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
 
-	_, err = db.Exec("UPDATE orders SET sum = $1, processed_at = NOW() WHERE order_number = $2", sum, orderNumber)
+	_, err = db.Exec("INSERT INTO withdrawals VALUES ($1, $2, $3, NOW())", orderNumber, username, sum)
 	if err != nil {
 		return 0, fmt.Errorf("store query error: %w", err)
 	}

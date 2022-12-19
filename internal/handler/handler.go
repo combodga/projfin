@@ -228,7 +228,7 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "status: unauthorized")
 	}
 
-	withdrawals, err := h.Store.ListOrders(username)
+	withdrawals, err := h.Store.ListWithdrawals(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
