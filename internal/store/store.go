@@ -8,26 +8,24 @@ import (
 )
 
 type Store struct {
-	DB        string
+	DB        *sqlx.DB
 	ErrorDupe error
 }
 
-type User struct {
+type user struct {
 	Username  string  `db:"username"`
 	Password  string  `db:"password"`
 	Balance   float64 `db:"balance"`
 	Withdrawn float64 `db:"withdrawn"`
 }
-
-type Order struct {
+type order struct {
 	OrderNumber string  `db:"order_number"`
 	Username    string  `db:"username"`
 	Status      string  `db:"status"`
 	Accrual     float64 `db:"accrual"`
 	UploadedAt  string  `db:"uploaded_at"`
 }
-
-type Withdraw struct {
+type withdraw struct {
 	OrderNumber string  `db:"order_number"`
 	Username    string  `db:"username"`
 	Sum         float64 `db:"sum"`
@@ -35,49 +33,30 @@ type Withdraw struct {
 }
 
 func New(database string) (*Store, error) {
+	db, err := sqlx.Connect("postgres", database)
+	if err != nil {
+		return nil, fmt.Errorf("store connect error: %w", err)
+	}
+
 	s := &Store{
-		DB:        database,
+		DB:        db,
 		ErrorDupe: fmt.Errorf("duplicate key error"),
 	}
 
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return s, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
+	sql := "BEGIN;CREATE TABLE IF NOT EXISTS users (username text primary key,password text,balance double precision,withdrawn double precision);"
+	sql += "CREATE TABLE IF NOT EXISTS orders (order_number text primary key,username text,status text,accrual double precision,uploaded_at timestamp with time zone);"
+	sql += "CREATE TABLE IF NOT EXISTS withdrawals (order_number text,username text,sum double precision,processed_at timestamp with time zone);COMMIT;"
+	db.MustExec(sql)
 
-	db.MustExec(`
-        CREATE TABLE IF NOT EXISTS users (
-            username text primary key,
-            password text,
-            balance double precision,
-            withdrawn double precision
-        );
-
-        CREATE TABLE IF NOT EXISTS orders (
-            order_number text primary key,
-            username text,
-            status text,
-            accrual double precision,
-            uploaded_at timestamp with time zone
-        );
-
-        CREATE TABLE IF NOT EXISTS withdrawals (
-            order_number text,
-            username text,
-            sum double precision,
-            processed_at timestamp with time zone
-        );
-    `)
-
-	user := User{}
-	rows, err := db.Queryx("SELECT * FROM users")
+	user1 := user{}
+	sql = "SELECT * FROM users"
+	rows, err := db.Queryx(sql)
 	if err != nil {
 		return s, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.StructScan(&user)
+		err := rows.StructScan(&user1)
 		if err != nil {
 			return s, fmt.Errorf("store scan error: %w", err)
 		}
@@ -91,36 +70,23 @@ func New(database string) (*Store, error) {
 }
 
 func (s *Store) DoRegister(username, password string) error {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("INSERT INTO users VALUES ($1, $2, 0, 0)", username, password)
+	sql := "INSERT INTO users VALUES ($1, $2, 0, 0)"
+	_, err := s.DB.Exec(sql, username, password)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
 				return s.ErrorDupe
 			}
 		}
-	}
-
-	if err != nil {
 		return fmt.Errorf("store query error: %w", err)
 	}
 	return nil
 }
 
 func (s *Store) DoLogin(username, password string) error {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
 	var count int
-	rows, err := db.Queryx("SELECT COUNT(*) FROM users WHERE username = $1 AND password = $2", username, password)
+	sql := "SELECT COUNT(*) FROM users WHERE username = $1 AND password = $2"
+	rows, err := s.DB.Queryx(sql, username, password)
 	if err != nil {
 		return fmt.Errorf("store query rows error: %w", err)
 	}
@@ -144,26 +110,21 @@ func (s *Store) DoLogin(username, password string) error {
 }
 
 func (s *Store) CheckOrder(username, orderNumber string) (int, error) {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return 0, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	order := Order{}
-	rows, err := db.Queryx("SELECT * FROM orders WHERE order_number = $1", orderNumber)
+	order1 := order{}
+	sql := "SELECT * FROM orders WHERE order_number = $1"
+	rows, err := s.DB.Queryx(sql, orderNumber)
 	if err != nil {
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.StructScan(&order); err != nil {
+		if err := rows.StructScan(&order1); err != nil {
 			return 0, fmt.Errorf("store query rows error: %w", err)
 		}
-		if order.Username == username {
+		if order1.Username == username {
 			return 1, nil
-		} else if order.Username != "" {
+		} else if order1.Username != "" {
 			return 2, nil
 		}
 	}
@@ -177,50 +138,36 @@ func (s *Store) CheckOrder(username, orderNumber string) (int, error) {
 }
 
 func (s *Store) MakeOrder(username, orderNumber string) error {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())", orderNumber, username)
+	sql := "INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())"
+	_, err := s.DB.Exec(sql, orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
 				return s.ErrorDupe
 			}
 		}
-	}
-
-	if err != nil {
 		return fmt.Errorf("store query error: %w", err)
 	}
-
 	return nil
 }
 
-func (s *Store) ListOrders(username string) ([]Order, error) {
-	var result []Order
+func (s *Store) ListOrders(username string) ([]order, error) {
+	var result []order
 
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return result, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	order := Order{}
-	rows, err := db.Queryx("SELECT * FROM orders WHERE username = $1", username)
+	order1 := order{}
+	sql := "SELECT * FROM orders WHERE username = $1"
+	rows, err := s.DB.Queryx(sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.StructScan(&order)
+		err := rows.StructScan(&order1)
 		if err != nil {
 			return result, fmt.Errorf("store scan error: %w", err)
 		}
-		result = append(result, order)
+		result = append(result, order1)
 	}
 
 	err = rows.Err()
@@ -231,28 +178,23 @@ func (s *Store) ListOrders(username string) ([]Order, error) {
 	return result, nil
 }
 
-func (s *Store) ListWithdrawals(username string) ([]Withdraw, error) {
-	var result []Withdraw
+func (s *Store) ListWithdrawals(username string) ([]withdraw, error) {
+	var result []withdraw
 
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return result, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	withdraw := Withdraw{}
-	rows, err := db.Queryx("SELECT * FROM withdrawals WHERE username = $1", username)
+	withdraw1 := withdraw{}
+	sql := "SELECT * FROM withdrawals WHERE username = $1"
+	rows, err := s.DB.Queryx(sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.StructScan(&withdraw)
+		err := rows.StructScan(&withdraw1)
 		if err != nil {
 			return result, fmt.Errorf("store scan error: %w", err)
 		}
-		result = append(result, withdraw)
+		result = append(result, withdraw1)
 	}
 
 	err = rows.Err()
@@ -263,53 +205,43 @@ func (s *Store) ListWithdrawals(username string) ([]Withdraw, error) {
 	return result, nil
 }
 
-func (s *Store) GetUserBalance(username string) (User, error) {
-	user := User{}
+func (s *Store) GetUserBalance(username string) (user, error) {
+	user1 := user{}
 
-	db, err := sqlx.Connect("postgres", s.DB)
+	sql := "SELECT * FROM users WHERE username = $1"
+	rows, err := s.DB.Queryx(sql, username)
 	if err != nil {
-		return user, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	rows, err := db.Queryx("SELECT * FROM users WHERE username = $1", username)
-	if err != nil {
-		return user, fmt.Errorf("store query rows error: %w", err)
+		return user1, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 
 	rows.Next()
-	err = rows.StructScan(&user)
+	err = rows.StructScan(&user1)
 	if err != nil {
-		return user, fmt.Errorf("store scan error: %w", err)
+		return user1, fmt.Errorf("store scan error: %w", err)
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return user, fmt.Errorf("store get rows error: %w", err)
+		return user1, fmt.Errorf("store get rows error: %w", err)
 	}
 
-	return user, nil
+	return user1, nil
 }
 
 func (s *Store) Withdraw(username, orderNumber string, sum float64) (int, error) {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return 0, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	user := User{}
-	rows, err := db.Queryx("SELECT * FROM users WHERE username = $1", username)
+	user1 := user{}
+	sql := "SELECT * FROM users WHERE username = $1"
+	rows, err := s.DB.Queryx(sql, username)
 	if err != nil {
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		if err := rows.StructScan(&user); err != nil {
+		if err := rows.StructScan(&user1); err != nil {
 			return 0, fmt.Errorf("store query rows error: %w", err)
 		}
-		if user.Balance < sum {
+		if user1.Balance < sum {
 			return 402, nil
 		}
 	}
@@ -318,27 +250,34 @@ func (s *Store) Withdraw(username, orderNumber string, sum float64) (int, error)
 		return 0, fmt.Errorf("store get rows error: %w", err)
 	}
 
-	_, err = db.Exec("UPDATE users SET balance = $1, withdrawn = $2 WHERE username = $3", user.Balance-sum, user.Withdrawn+sum, username)
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("store tx error: %w", err)
+	}
+
+	sql = "UPDATE users SET balance = $1, withdrawn = $2 WHERE username = $3"
+	_, err = tx.Exec(sql, user1.Balance-sum, user1.Withdrawn+sum, username)
 	if err != nil {
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
 
-	_, err = db.Exec("INSERT INTO withdrawals VALUES ($1, $2, $3, NOW())", orderNumber, username, sum)
+	sql = "INSERT INTO withdrawals VALUES ($1, $2, $3, NOW())"
+	_, err = tx.Exec(sql, orderNumber, username, sum)
 	if err != nil {
 		return 0, fmt.Errorf("store query error: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, fmt.Errorf("store commit error: %w", err)
 	}
 
 	return 0, nil
 }
 
 func (s *Store) InvalidateOrder(orderNumber string) error {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("UPDATE orders SET status = 'INVALID' WHERE order_number = $1", orderNumber)
+	sql := "UPDATE orders SET status = 'INVALID' WHERE order_number = $1"
+	_, err := s.DB.Exec(sql, orderNumber)
 	if err != nil {
 		return fmt.Errorf("db update error: %w", err)
 	}
@@ -346,47 +285,31 @@ func (s *Store) InvalidateOrder(orderNumber string) error {
 	return nil
 }
 
-func (s *Store) GetOrdersUser(orderNumber string) (Order, error) {
-	order := Order{}
+func (s *Store) GetOrdersUser(orderNumber string) (order, error) {
+	order1 := order{}
 
-	db, err := sqlx.Connect("postgres", s.DB)
+	sql := "SELECT * FROM orders WHERE order_number = $1"
+	rows, err := s.DB.Queryx(sql, orderNumber)
 	if err != nil {
-		return order, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	rows, err := db.Queryx("SELECT * FROM orders WHERE order_number = $1", orderNumber)
-	if err != nil {
-		return order, fmt.Errorf("store query rows error: %w", err)
+		return order1, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 
 	rows.Next()
-	err = rows.StructScan(&order)
+	err = rows.StructScan(&order1)
 	if err != nil {
-		return order, fmt.Errorf("store scan error: %w", err)
+		return order1, fmt.Errorf("store scan error: %w", err)
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return order, fmt.Errorf("store get rows error: %w", err)
+		return order1, fmt.Errorf("store get rows error: %w", err)
 	}
 
-	return order, nil
+	return order1, nil
 }
 
 func (s *Store) ProcessOrder(orderNumber string, accrual float64) error {
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("UPDATE orders SET status = 'PROCESSED', accrual = $1 WHERE order_number = $2", accrual, orderNumber)
-	if err != nil {
-		return fmt.Errorf("db update error: %w", err)
-	}
-
 	order, err := s.GetOrdersUser(orderNumber)
 	if err != nil {
 		return fmt.Errorf("store user balance error: %w", err)
@@ -398,41 +321,54 @@ func (s *Store) ProcessOrder(orderNumber string, accrual float64) error {
 		return fmt.Errorf("store user balance error: %w", err)
 	}
 
-	_, err = db.Exec("UPDATE users SET balance = $1 WHERE username = $2", balance.Balance+accrual, username)
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("store tx error: %w", err)
+	}
+
+	sql := "UPDATE orders SET status = 'PROCESSED', accrual = $1 WHERE order_number = $2"
+	_, err = tx.Exec(sql, accrual, orderNumber)
+	if err != nil {
+		return fmt.Errorf("db update error: %w", err)
+	}
+
+	sql = "UPDATE users SET balance = $1 WHERE username = $2"
+	_, err = tx.Exec(sql, balance.Balance+accrual, username)
 	if err != nil {
 		return fmt.Errorf("store query error: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("store commit error: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Store) OrdersProcessing() ([]Order, error) {
-	var result []Order
+func (s *Store) OrdersProcessing() ([]order, error) {
+	var result []order
 
-	db, err := sqlx.Connect("postgres", s.DB)
-	if err != nil {
-		return result, fmt.Errorf("store connect error: %w", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("UPDATE orders SET status = 'PROCESSING' WHERE status = 'NEW'")
+	sql := "UPDATE orders SET status = 'PROCESSING' WHERE status = 'NEW'"
+	_, err := s.DB.Exec(sql)
 	if err != nil {
 		return result, fmt.Errorf("db update error: %w", err)
 	}
 
-	order := Order{}
-	rows, err := db.Queryx("SELECT * FROM orders WHERE status = 'PROCESSING'")
+	order1 := order{}
+	sql = "SELECT * FROM orders WHERE status = 'PROCESSING'"
+	rows, err := s.DB.Queryx(sql)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.StructScan(&order)
+		err := rows.StructScan(&order1)
 		if err != nil {
 			return result, fmt.Errorf("store scan error: %w", err)
 		}
-		result = append(result, order)
+		result = append(result, order1)
 	}
 
 	err = rows.Err()

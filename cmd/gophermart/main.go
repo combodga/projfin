@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
 	"github.com/combodga/projfin/internal/app"
@@ -19,6 +20,6 @@ func main() {
 
 	err := app.Go(run, db, accr)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

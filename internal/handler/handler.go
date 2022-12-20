@@ -21,29 +21,29 @@ type Handler struct {
 	Accr  string
 }
 
-type Credentials struct {
+type credentials struct {
 	Username string `json:"login"`
 	Password string `json:"password"`
 }
 
-type Order struct {
+type order struct {
 	Number     string  `json:"number"`
 	Status     string  `json:"status"`
 	Accrual    float64 `json:"accrual"`
 	UploadedAt string  `json:"uploaded_at"`
 }
 
-type Balance struct {
+type balance struct {
 	Current   float64 `json:"current"`
 	Withdrawn float64 `json:"withdrawn"`
 }
 
-type Withdraw struct {
+type withdraw struct {
 	OrderNum string  `json:"order"`
 	Sum      float64 `json:"sum"`
 }
 
-type WithdrawalsList struct {
+type withdrawalsList struct {
 	OrderNum    string  `json:"order"`
 	Sum         float64 `json:"sum"`
 	ProcessedAt string  `json:"processed_at"`
@@ -69,7 +69,7 @@ func (h *Handler) PostRegister(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
 
-	var cred Credentials
+	var cred credentials
 	err = json.Unmarshal(body, &cred)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
@@ -92,7 +92,7 @@ func (h *Handler) PostLogin(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
 
-	var cred Credentials
+	var cred credentials
 	err = json.Unmarshal(body, &cred)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
@@ -158,7 +158,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
 
-	var wdraw Withdraw
+	var wdraw withdraw
 	err = json.Unmarshal(body, &wdraw)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
@@ -200,9 +200,9 @@ func (h *Handler) GetOrders(c echo.Context) error {
 		return c.String(http.StatusNoContent, "status: no content")
 	}
 
-	var ordersList []Order
-	for _, order := range orders {
-		ordersList = append(ordersList, Order{order.OrderNumber, order.Status, order.Accrual, order.UploadedAt})
+	var ordersList []order
+	for _, o := range orders {
+		ordersList = append(ordersList, order{o.OrderNumber, o.Status, o.Accrual, o.UploadedAt})
 	}
 	fmt.Println("GetOrders", username, ordersList)
 	return c.JSON(http.StatusOK, ordersList)
@@ -214,12 +214,12 @@ func (h *Handler) GetBalance(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "status: unauthorized")
 	}
 
-	balance, err := h.Store.GetUserBalance(username)
+	bal, err := h.Store.GetUserBalance(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
 
-	return c.JSON(http.StatusOK, Balance{balance.Balance, balance.Withdrawn})
+	return c.JSON(http.StatusOK, balance{bal.Balance, bal.Withdrawn})
 }
 
 func (h *Handler) GetWithdrawals(c echo.Context) error {
@@ -228,20 +228,20 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "status: unauthorized")
 	}
 
-	withdrawals, err := h.Store.ListWithdrawals(username)
+	w, err := h.Store.ListWithdrawals(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
-	if withdrawals == nil {
+	if w == nil {
 		return c.String(http.StatusNoContent, "status: no content")
 	}
 
-	var withdrawalsList []WithdrawalsList
-	for _, withdraw := range withdrawals {
-		withdrawalsList = append(withdrawalsList, WithdrawalsList{withdraw.OrderNumber, withdraw.Sum, withdraw.ProcessedAt})
+	var withdrawals []withdrawalsList
+	for _, withdraw := range w {
+		withdrawals = append(withdrawals, withdrawalsList{withdraw.OrderNumber, withdraw.Sum, withdraw.ProcessedAt})
 	}
 
-	return c.JSON(http.StatusOK, withdrawalsList)
+	return c.JSON(http.StatusOK, withdrawals)
 }
 
 func (h *Handler) FetchAccruals() error {
