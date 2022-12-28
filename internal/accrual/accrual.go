@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/combodga/projfin/internal/handler"
+	"github.com/combodga/projfin/internal/order/orderStore"
 )
 
 type Accrual struct {
@@ -15,7 +18,7 @@ type Accrual struct {
 	Accrual  float64 `json:"accrual"`
 }
 
-func Calculate(accr, orderNumber string) (string, float64, error) {
+func calculate(accr, orderNumber string) (string, float64, error) {
 	resp, err := http.Get(accr + "/api/orders/" + orderNumber)
 	if err != nil {
 		return "", 0, fmt.Errorf("error getting accrual: %w", err)
@@ -43,4 +46,39 @@ func Calculate(accr, orderNumber string) (string, float64, error) {
 	}
 
 	return a.Status, a.Accrual, nil
+}
+
+func FetchAccruals(h *handler.Handler) error {
+	for {
+		getAccruals(h)
+		time.Sleep(300 * time.Millisecond)
+	}
+}
+
+func getAccruals(h *handler.Handler) error {
+	orders, err := orderStore.OrdersProcessing(h.Store)
+	if err != nil {
+		return fmt.Errorf("update accrual error: %w", err)
+	}
+
+	for _, order := range orders {
+		status, accrual, err := calculate(h.Accr, order.OrderNumber)
+		if err != nil {
+			return fmt.Errorf("update accrual order error: %w", err)
+		}
+
+		if status == "INVALID" {
+			err = orderStore.InvalidateOrder(h.Store, order.OrderNumber)
+			if err != nil {
+				return fmt.Errorf("set order invalid error: %w", err)
+			}
+		} else if status == "PROCESSED" {
+			err = orderStore.ProcessOrder(h.Store, order.OrderNumber, accrual)
+			if err != nil {
+				return fmt.Errorf("set order processed error: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
