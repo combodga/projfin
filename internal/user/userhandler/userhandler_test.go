@@ -1,13 +1,14 @@
 package userhandler
 
 import (
-	"crypto/rand"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/combodga/projfin/internal/handler"
 	"github.com/labstack/echo/v4"
@@ -21,8 +22,8 @@ func Test_PostRegister(t *testing.T) {
 	uh := New(h)
 
 	e := echo.New()
-	n, _ := rand.Int()
-	s := "{\"login\":\"" + strconv.Itoa(n) + "\",\"password\":\"test\"}"
+	rand.Seed(time.Now().UnixNano())
+	s := "{\"login\":\"" + strconv.Itoa(rand.Intn(1e10)) + "\",\"password\":\"test\"}"
 	request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", strings.NewReader(s))
 
 	recorder := httptest.NewRecorder()
