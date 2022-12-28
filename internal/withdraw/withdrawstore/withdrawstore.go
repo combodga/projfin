@@ -78,18 +78,21 @@ func Withdraw(s *store.Store, ctx context.Context, username, orderNumber string,
 		return 0, fmt.Errorf("store tx error: %w", err)
 	}
 
-	user1 := user{}
+	var uUsername string
+	var uPassword string
+	var uBalance float64
+	var uWithdrawn float64
 	sql := "SELECT * FROM users WHERE username = $1"
-	err = tx.QueryRowContext(ctx, sql, username).Scan(&user1)
+	err = tx.QueryRowContext(ctx, sql, username).Scan(&uUsername, &uPassword, &uBalance, &uWithdrawn)
 	if err != nil {
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
-	if user1.Balance < sum {
+	if uBalance < sum {
 		return 402, nil
 	}
 
 	sql = "UPDATE users SET balance = $1, withdrawn = $2 WHERE username = $3"
-	_, err = tx.ExecContext(ctx, sql, user1.Balance-sum, user1.Withdrawn+sum, username)
+	_, err = tx.ExecContext(ctx, sql, uBalance-sum, uWithdrawn+sum, username)
 	if err != nil {
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
