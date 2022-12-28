@@ -9,7 +9,7 @@ import (
 	"github.com/combodga/projfin/internal/handler"
 	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
-	"github.com/combodga/projfin/internal/user/userStore"
+	"github.com/combodga/projfin/internal/user/userstore"
 	"github.com/labstack/echo/v4"
 )
 
