@@ -1,4 +1,4 @@
-package withdrawStore
+package withdrawstore
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package orderHandler
+package orderhandler
 
 import (
 	"io"
@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/order/orderStore"
+	"github.com/combodga/projfin/internal/order/orderstore"
 	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
@@ -51,7 +51,7 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	code, err := orderStore.CheckOrder(oh.Store, c.Request().Context(), username, order)
+	code, err := orderstore.CheckOrder(oh.Store, c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -61,7 +61,7 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusOK, "status: ok")
 	}
 
-	err = orderStore.MakeOrder(oh.Store, c.Request().Context(), username, order)
+	err = orderstore.MakeOrder(oh.Store, c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -72,7 +72,7 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 func (oh *OrderHandler) GetOrders(c echo.Context) error {
 	username := c.Get("username").(string)
 
-	orders, err := orderStore.ListOrders(oh.Store, username)
+	orders, err := orderstore.ListOrders(oh.Store, username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

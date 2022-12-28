@@ -10,9 +10,9 @@ import (
 
 	"github.com/combodga/projfin/internal/accrual"
 	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/order/orderHandler"
-	"github.com/combodga/projfin/internal/user/userHandler"
-	"github.com/combodga/projfin/internal/withdraw/withdrawHandler"
+	orderhandler "github.com/combodga/projfin/internal/order/orderHandler"
+	userhandler "github.com/combodga/projfin/internal/user/userHandler"
+	withdrawhandler "github.com/combodga/projfin/internal/withdraw/withdrawHandler"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -28,15 +28,15 @@ func Go(run, database, accr string) error {
 	e.Use(middleware.Gzip())
 	e.Use(middleware.Decompress())
 
-	uh := userHandler.New(h)
+	uh := userhandler.New(h)
 	e.POST("/api/user/register", uh.PostRegister)
 	e.POST("/api/user/login", uh.PostLogin)
 
-	oh := orderHandler.New(h)
+	oh := orderhandler.New(h)
 	e.POST("/api/user/orders", oh.PostOrders, handler.Auth)
 	e.GET("/api/user/orders", oh.GetOrders, handler.Auth)
 
-	wh := withdrawHandler.New(h)
+	wh := withdrawhandler.New(h)
 	e.POST("/api/user/balance/withdraw", wh.PostBalanceWithdraw, handler.Auth)
 	e.GET("/api/user/balance", wh.GetBalance, handler.Auth)
 	e.GET("/api/user/withdrawals", wh.GetWithdrawals, handler.Auth)

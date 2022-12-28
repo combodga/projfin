@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/order/orderStore"
+	"github.com/combodga/projfin/internal/order/orderstore"
 )
 
 type Accrual struct {
@@ -56,7 +56,7 @@ func FetchAccruals(h *handler.Handler) error {
 }
 
 func getAccruals(h *handler.Handler) error {
-	orders, err := orderStore.OrdersProcessing(h.Store)
+	orders, err := orderstore.OrdersProcessing(h.Store)
 	if err != nil {
 		return fmt.Errorf("update accrual error: %w", err)
 	}
@@ -68,12 +68,12 @@ func getAccruals(h *handler.Handler) error {
 		}
 
 		if status == "INVALID" {
-			err = orderStore.InvalidateOrder(h.Store, order.OrderNumber)
+			err = orderstore.InvalidateOrder(h.Store, order.OrderNumber)
 			if err != nil {
 				return fmt.Errorf("set order invalid error: %w", err)
 			}
 		} else if status == "PROCESSED" {
-			err = orderStore.ProcessOrder(h.Store, order.OrderNumber, accrual)
+			err = orderstore.ProcessOrder(h.Store, order.OrderNumber, accrual)
 			if err != nil {
 				return fmt.Errorf("set order processed error: %w", err)
 			}

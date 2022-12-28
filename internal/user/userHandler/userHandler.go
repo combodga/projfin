@@ -1,4 +1,4 @@
-package userHandler
+package userhandler
 
 import (
 	"encoding/json"
@@ -44,7 +44,7 @@ func (uh *UserHandler) PostRegister(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	err = userStore.DoRegister(uh.Store, c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
+	err = userstore.DoRegister(uh.Store, c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
 	if errors.Is(err, uh.Store.ErrorDupe) {
 		return c.String(http.StatusConflict, "status: conflict")
 	} else if err != nil {
@@ -68,7 +68,7 @@ func (uh *UserHandler) PostLogin(c echo.Context) error {
 	}
 
 	hash := user.PasswordHasher(cred.Password)
-	err = userStore.DoLogin(uh.Store, c.Request().Context(), cred.Username, hash)
+	err = userstore.DoLogin(uh.Store, c.Request().Context(), cred.Username, hash)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")
 	}

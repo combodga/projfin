@@ -1,11 +1,11 @@
-package orderStore
+package orderstore
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/combodga/projfin/internal/store"
-	"github.com/combodga/projfin/internal/withdraw/withdrawStore"
+	"github.com/combodga/projfin/internal/withdraw/withdrawstore"
 
 	"github.com/lib/pq"
 )
@@ -128,7 +128,7 @@ func ProcessOrder(s *store.Store, orderNumber string, accrual float64) error {
 	}
 	username := order.Username
 
-	balance, err := withdrawStore.GetUserBalance(s, username)
+	balance, err := withdrawstore.GetUserBalance(s, username)
 	if err != nil {
 		return fmt.Errorf("store user balance error: %w", err)
 	}
