@@ -10,9 +10,9 @@ import (
 
 	"github.com/combodga/projfin/internal/accrual"
 	"github.com/combodga/projfin/internal/handler"
-	orderhandler "github.com/combodga/projfin/internal/order/orderhandler"
-	userhandler "github.com/combodga/projfin/internal/user/userhandler"
-	withdrawhandler "github.com/combodga/projfin/internal/withdraw/withdrawhandler"
+	"github.com/combodga/projfin/internal/order/orderhandler"
+	"github.com/combodga/projfin/internal/user/userhandler"
+	"github.com/combodga/projfin/internal/withdraw/withdrawhandler"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
