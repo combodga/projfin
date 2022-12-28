@@ -61,6 +61,19 @@ func New(database, accr string) (*Handler, error) {
 	}, err
 }
 
+// Middleware
+
+func Auth(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		username, err := user.Get(c)
+		if err != nil {
+			return c.String(http.StatusUnauthorized, "status: unauthorized")
+		}
+		c.Set("username", username)
+		return next(c)
+	}
+}
+
 // POST
 
 func (h *Handler) PostRegister(c echo.Context) error {
@@ -75,7 +88,7 @@ func (h *Handler) PostRegister(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	err = h.Store.DoRegister(cred.Username, user.PasswordHasher(cred.Password))
+	err = h.Store.DoRegister(c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
 	if errors.Is(err, h.Store.ErrorDupe) {
 		return c.String(http.StatusConflict, "status: conflict")
 	} else if err != nil {
@@ -99,7 +112,7 @@ func (h *Handler) PostLogin(c echo.Context) error {
 	}
 
 	hash := user.PasswordHasher(cred.Password)
-	err = h.Store.DoLogin(cred.Username, hash)
+	err = h.Store.DoLogin(c.Request().Context(), cred.Username, hash)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")
 	}
@@ -109,10 +122,7 @@ func (h *Handler) PostLogin(c echo.Context) error {
 }
 
 func (h *Handler) PostOrders(c echo.Context) error {
-	username, err := user.Get(c)
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "status: unauthorized")
-	}
+	username := c.Get("username").(string)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
@@ -129,7 +139,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	code, err := h.Store.CheckOrder(username, order)
+	code, err := h.Store.CheckOrder(c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -139,7 +149,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusOK, "status: ok")
 	}
 
-	err = h.Store.MakeOrder(username, order)
+	err = h.Store.MakeOrder(c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -148,10 +158,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 }
 
 func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
-	username, err := user.Get(c)
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "status: unauthorized")
-	}
+	username := c.Get("username").(string)
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
@@ -173,7 +180,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	withdraw, err := h.Store.Withdraw(username, wdraw.OrderNum, wdraw.Sum)
+	withdraw, err := h.Store.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -187,12 +194,9 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 // GET
 
 func (h *Handler) GetOrders(c echo.Context) error {
-	username, err := user.Get(c)
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "status: unauthorized")
-	}
+	username := c.Get("username").(string)
 
-	orders, err := h.Store.ListOrders(username)
+	orders, err := h.Store.ListOrders(c.Request().Context(), username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -209,10 +213,7 @@ func (h *Handler) GetOrders(c echo.Context) error {
 }
 
 func (h *Handler) GetBalance(c echo.Context) error {
-	username, err := user.Get(c)
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "status: unauthorized")
-	}
+	username := c.Get("username").(string)
 
 	bal, err := h.Store.GetUserBalance(username)
 	if err != nil {
@@ -223,12 +224,9 @@ func (h *Handler) GetBalance(c echo.Context) error {
 }
 
 func (h *Handler) GetWithdrawals(c echo.Context) error {
-	username, err := user.Get(c)
-	if err != nil {
-		return c.String(http.StatusUnauthorized, "status: unauthorized")
-	}
+	username := c.Get("username").(string)
 
-	w, err := h.Store.ListWithdrawals(username)
+	w, err := h.Store.ListWithdrawals(c.Request().Context(), username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -44,34 +45,20 @@ func New(database string) (*Store, error) {
 	}
 
 	sql := "BEGIN;CREATE TABLE IF NOT EXISTS users (username text primary key,password text,balance double precision,withdrawn double precision);"
-	sql += "CREATE TABLE IF NOT EXISTS orders (order_number text primary key,username text,status text,accrual double precision,uploaded_at timestamp with time zone);"
-	sql += "CREATE TABLE IF NOT EXISTS withdrawals (order_number text,username text,sum double precision,processed_at timestamp with time zone);COMMIT;"
+	sql += "CREATE TABLE IF NOT EXISTS orders (order_number text primary key,username text REFERENCES users,status text,accrual double precision,uploaded_at timestamp with time zone);"
+	sql += "CREATE TABLE IF NOT EXISTS withdrawals (order_number text,username text REFERENCES users,sum double precision,processed_at timestamp with time zone);COMMIT;"
 	db.MustExec(sql)
-
-	user1 := user{}
-	sql = "SELECT * FROM users"
-	rows, err := db.Queryx(sql)
-	if err != nil {
-		return s, fmt.Errorf("store query rows error: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		err := rows.StructScan(&user1)
-		if err != nil {
-			return s, fmt.Errorf("store scan error: %w", err)
-		}
-	}
-	err = rows.Err()
-	if err != nil {
-		return s, fmt.Errorf("store get rows error: %w", err)
-	}
 
 	return s, nil
 }
 
-func (s *Store) DoRegister(username, password string) error {
+func (s *Store) Close() {
+	s.DB.Close()
+}
+
+func (s *Store) DoRegister(ctx context.Context, username, password string) error {
 	sql := "INSERT INTO users VALUES ($1, $2, 0, 0)"
-	_, err := s.DB.Exec(sql, username, password)
+	_, err := s.DB.ExecContext(ctx, sql, username, password)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -83,10 +70,10 @@ func (s *Store) DoRegister(username, password string) error {
 	return nil
 }
 
-func (s *Store) DoLogin(username, password string) error {
+func (s *Store) DoLogin(ctx context.Context, username, password string) error {
 	var count int
 	sql := "SELECT COUNT(*) FROM users WHERE username = $1 AND password = $2"
-	rows, err := s.DB.Queryx(sql, username, password)
+	rows, err := s.DB.QueryxContext(ctx, sql, username, password)
 	if err != nil {
 		return fmt.Errorf("store query rows error: %w", err)
 	}
@@ -109,10 +96,10 @@ func (s *Store) DoLogin(username, password string) error {
 	return nil
 }
 
-func (s *Store) CheckOrder(username, orderNumber string) (int, error) {
+func (s *Store) CheckOrder(ctx context.Context, username, orderNumber string) (int, error) {
 	order1 := order{}
 	sql := "SELECT * FROM orders WHERE order_number = $1"
-	rows, err := s.DB.Queryx(sql, orderNumber)
+	rows, err := s.DB.QueryxContext(ctx, sql, orderNumber)
 	if err != nil {
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -137,9 +124,9 @@ func (s *Store) CheckOrder(username, orderNumber string) (int, error) {
 	return 0, nil
 }
 
-func (s *Store) MakeOrder(username, orderNumber string) error {
+func (s *Store) MakeOrder(ctx context.Context, username, orderNumber string) error {
 	sql := "INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())"
-	_, err := s.DB.Exec(sql, orderNumber, username)
+	_, err := s.DB.ExecContext(ctx, sql, orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -151,12 +138,12 @@ func (s *Store) MakeOrder(username, orderNumber string) error {
 	return nil
 }
 
-func (s *Store) ListOrders(username string) ([]order, error) {
+func (s *Store) ListOrders(ctx context.Context, username string) ([]order, error) {
 	var result []order
 
 	order1 := order{}
 	sql := "SELECT * FROM orders WHERE username = $1"
-	rows, err := s.DB.Queryx(sql, username)
+	rows, err := s.DB.QueryxContext(ctx, sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -178,12 +165,12 @@ func (s *Store) ListOrders(username string) ([]order, error) {
 	return result, nil
 }
 
-func (s *Store) ListWithdrawals(username string) ([]withdraw, error) {
+func (s *Store) ListWithdrawals(ctx context.Context, username string) ([]withdraw, error) {
 	var result []withdraw
 
 	withdraw1 := withdraw{}
 	sql := "SELECT * FROM withdrawals WHERE username = $1"
-	rows, err := s.DB.Queryx(sql, username)
+	rows, err := s.DB.QueryxContext(ctx, sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -229,40 +216,30 @@ func (s *Store) GetUserBalance(username string) (user, error) {
 	return user1, nil
 }
 
-func (s *Store) Withdraw(username, orderNumber string, sum float64) (int, error) {
-	user1 := user{}
-	sql := "SELECT * FROM users WHERE username = $1"
-	rows, err := s.DB.Queryx(sql, username)
-	if err != nil {
-		return 0, fmt.Errorf("store query rows error: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		if err := rows.StructScan(&user1); err != nil {
-			return 0, fmt.Errorf("store query rows error: %w", err)
-		}
-		if user1.Balance < sum {
-			return 402, nil
-		}
-	}
-	err = rows.Err()
-	if err != nil {
-		return 0, fmt.Errorf("store get rows error: %w", err)
-	}
-
+func (s *Store) Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error) {
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("store tx error: %w", err)
 	}
 
+	user1 := user{}
+	sql := "SELECT * FROM users WHERE username = $1"
+	err = tx.QueryRowContext(ctx, sql, username).Scan(&user1)
+	if err != nil {
+		return 0, fmt.Errorf("store query rows error: %w", err)
+	}
+	if user1.Balance < sum {
+		return 402, nil
+	}
+
 	sql = "UPDATE users SET balance = $1, withdrawn = $2 WHERE username = $3"
-	_, err = tx.Exec(sql, user1.Balance-sum, user1.Withdrawn+sum, username)
+	_, err = tx.ExecContext(ctx, sql, user1.Balance-sum, user1.Withdrawn+sum, username)
 	if err != nil {
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
 
 	sql = "INSERT INTO withdrawals VALUES ($1, $2, $3, NOW())"
-	_, err = tx.Exec(sql, orderNumber, username, sum)
+	_, err = tx.ExecContext(ctx, sql, orderNumber, username, sum)
 	if err != nil {
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
