@@ -18,10 +18,10 @@ type order struct {
 	UploadedAt  string  `db:"uploaded_at"`
 }
 
-func CheckOrder(s *store.Store, ctx context.Context, username, orderNumber string) (int, error) {
+func CheckOrder(s *store.Store, username, orderNumber string) (int, error) {
 	order1 := order{}
 	sql := "SELECT * FROM orders WHERE order_number = $1"
-	rows, err := s.DB.QueryxContext(ctx, sql, orderNumber)
+	rows, err := s.DB.Queryx(sql, orderNumber)
 	if err != nil {
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}

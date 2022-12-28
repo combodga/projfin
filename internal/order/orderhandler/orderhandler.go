@@ -51,7 +51,7 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	code, err := orderstore.CheckOrder(oh.Store, c.Request().Context(), username, order)
+	code, err := orderstore.CheckOrder(oh.Store, username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
