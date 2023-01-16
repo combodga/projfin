@@ -1,4 +1,4 @@
-package userhandler
+package handler
 
 import (
 	"encoding/json"
@@ -6,33 +6,16 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
-	"github.com/combodga/projfin/internal/user/userstore"
 	"github.com/labstack/echo/v4"
 )
-
-type UserHandler struct {
-	Store *store.Store
-	DB    string
-	Accr  string
-}
 
 type credentials struct {
 	Username string `json:"login"`
 	Password string `json:"password"`
 }
 
-func New(h *handler.Handler) *UserHandler {
-	return &UserHandler{
-		Store: h.Store,
-		DB:    h.DB,
-		Accr:  h.Accr,
-	}
-}
-
-func (uh *UserHandler) PostRegister(c echo.Context) error {
+func (h *Handler) PostRegister(c echo.Context) error {
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
@@ -44,8 +27,8 @@ func (uh *UserHandler) PostRegister(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	err = userstore.DoRegister(uh.Store, c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
-	if errors.Is(err, uh.Store.ErrorDupe) {
+	err = h.Store.User.DoRegister(c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
+	if errors.Is(err, h.Store.ErrorDupe) {
 		return c.String(http.StatusConflict, "status: conflict")
 	} else if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
@@ -55,7 +38,7 @@ func (uh *UserHandler) PostRegister(c echo.Context) error {
 	return c.String(http.StatusOK, "status: ok")
 }
 
-func (uh *UserHandler) PostLogin(c echo.Context) error {
+func (h *Handler) PostLogin(c echo.Context) error {
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
@@ -68,7 +51,7 @@ func (uh *UserHandler) PostLogin(c echo.Context) error {
 	}
 
 	hash := user.PasswordHasher(cred.Password)
-	err = userstore.DoLogin(uh.Store, c.Request().Context(), cred.Username, hash)
+	err = h.Store.User.DoLogin(c.Request().Context(), cred.Username, hash)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")
 	}

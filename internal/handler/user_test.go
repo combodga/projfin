@@ -1,4 +1,4 @@
-package userhandler
+package handler
 
 import (
 	"io"
@@ -10,16 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/combodga/projfin/internal/handler"
 	"github.com/labstack/echo/v4"
 )
 
 func Test_PostRegister(t *testing.T) {
-	h, err := handler.New("host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable", "")
+	h, err := New("host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable", "")
 	if err != nil {
 		t.Fatalf("error initializing: %v", err)
 	}
-	uh := New(h)
 
 	e := echo.New()
 	rand.Seed(time.Now().UnixNano())
@@ -28,7 +26,7 @@ func Test_PostRegister(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	c := e.NewContext(request, recorder)
-	uh.PostRegister(c)
+	h.PostRegister(c)
 
 	result := recorder.Result()
 	defer result.Body.Close()
@@ -48,11 +46,10 @@ func Test_PostRegister(t *testing.T) {
 }
 
 func Test_PostLogin(t *testing.T) {
-	h, err := handler.New("host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable", "")
+	h, err := New("host=localhost port=5432 user=postgres password=postgres dbname=postgres sslmode=disable", "")
 	if err != nil {
 		t.Fatalf("error initializing: %v", err)
 	}
-	uh := New(h)
 
 	e := echo.New()
 	s := "{\"login\":\"check\",\"password\":\"check\"}"
@@ -60,13 +57,13 @@ func Test_PostLogin(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	c := e.NewContext(request, recorder)
-	uh.PostRegister(c)
+	h.PostRegister(c)
 
 	request = httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", strings.NewReader(s))
 
 	recorder = httptest.NewRecorder()
 	c = e.NewContext(request, recorder)
-	uh.PostLogin(c)
+	h.PostLogin(c)
 
 	result := recorder.Result()
 	defer result.Body.Close()
@@ -89,7 +86,7 @@ func Test_PostLogin(t *testing.T) {
 
 	recorder = httptest.NewRecorder()
 	c = e.NewContext(request, recorder)
-	uh.PostLogin(c)
+	h.PostLogin(c)
 
 	result = recorder.Result()
 	defer result.Body.Close()

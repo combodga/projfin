@@ -1,22 +1,14 @@
-package orderhandler
+package handler
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/order/orderstore"
-	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
 )
-
-type OrderHandler struct {
-	Store *store.Store
-	DB    string
-	Accr  string
-}
 
 type order struct {
 	Number     string  `json:"number"`
@@ -25,15 +17,11 @@ type order struct {
 	UploadedAt string  `json:"uploaded_at"`
 }
 
-func New(h *handler.Handler) *OrderHandler {
-	return &OrderHandler{
-		Store: h.Store,
-		DB:    h.DB,
-		Accr:  h.Accr,
+func (h *Handler) PostOrders(c echo.Context) error {
+	if c.Get("username") == nil {
+		return fmt.Errorf("get username error")
 	}
-}
 
-func (oh *OrderHandler) PostOrders(c echo.Context) error {
 	username := c.Get("username").(string)
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -51,7 +39,7 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	code, err := orderstore.CheckOrder(oh.Store, username, order)
+	code, err := h.Store.Order.CheckOrder(username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -61,7 +49,7 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusOK, "status: ok")
 	}
 
-	err = orderstore.MakeOrder(oh.Store, c.Request().Context(), username, order)
+	err = h.Store.Order.MakeOrder(c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -69,10 +57,14 @@ func (oh *OrderHandler) PostOrders(c echo.Context) error {
 	return c.String(http.StatusAccepted, "status: accepted")
 }
 
-func (oh *OrderHandler) GetOrders(c echo.Context) error {
+func (h *Handler) GetOrders(c echo.Context) error {
+	if c.Get("username") == nil {
+		return fmt.Errorf("get username error")
+	}
+
 	username := c.Get("username").(string)
 
-	orders, err := orderstore.ListOrders(oh.Store, username)
+	orders, err := h.Store.Order.ListOrders(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

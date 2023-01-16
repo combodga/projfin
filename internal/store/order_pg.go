@@ -1,11 +1,10 @@
-package orderstore
+package store
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/combodga/projfin/internal/store"
-	"github.com/combodga/projfin/internal/withdraw/withdrawstore"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/lib/pq"
 )
@@ -18,10 +17,26 @@ type order struct {
 	UploadedAt  string  `db:"uploaded_at"`
 }
 
-func CheckOrder(s *store.Store, username, orderNumber string) (int, error) {
+type user struct {
+	Username  string  `db:"username"`
+	Password  string  `db:"password"`
+	Balance   float64 `db:"balance"`
+	Withdrawn float64 `db:"withdrawn"`
+}
+
+type OrderPG struct {
+	DB        *sqlx.DB
+	ErrorDupe error
+}
+
+func NewOrderPG(db *sqlx.DB, ed error) *OrderPG {
+	return &OrderPG{DB: db, ErrorDupe: ed}
+}
+
+func (o *OrderPG) CheckOrder(username, orderNumber string) (int, error) {
 	order1 := order{}
 	sql := "SELECT * FROM orders WHERE order_number = $1"
-	rows, err := s.DB.Queryx(sql, orderNumber)
+	rows, err := o.DB.Queryx(sql, orderNumber)
 	if err != nil {
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -46,13 +61,13 @@ func CheckOrder(s *store.Store, username, orderNumber string) (int, error) {
 	return 0, nil
 }
 
-func MakeOrder(s *store.Store, ctx context.Context, username, orderNumber string) error {
+func (o *OrderPG) MakeOrder(ctx context.Context, username, orderNumber string) error {
 	sql := "INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())"
-	_, err := s.DB.ExecContext(ctx, sql, orderNumber, username)
+	_, err := o.DB.ExecContext(ctx, sql, orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return s.ErrorDupe
+				return o.ErrorDupe
 			}
 		}
 		return fmt.Errorf("store query error: %w", err)
@@ -60,12 +75,12 @@ func MakeOrder(s *store.Store, ctx context.Context, username, orderNumber string
 	return nil
 }
 
-func ListOrders(s *store.Store, username string) ([]order, error) {
+func (o *OrderPG) ListOrders(username string) ([]order, error) {
 	var result []order
 
 	order1 := order{}
 	sql := "SELECT * FROM orders WHERE username = $1"
-	rows, err := s.DB.Queryx(sql, username)
+	rows, err := o.DB.Queryx(sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -87,9 +102,9 @@ func ListOrders(s *store.Store, username string) ([]order, error) {
 	return result, nil
 }
 
-func InvalidateOrder(s *store.Store, orderNumber string) error {
+func (o *OrderPG) InvalidateOrder(orderNumber string) error {
 	sql := "UPDATE orders SET status = 'INVALID' WHERE order_number = $1"
-	_, err := s.DB.Exec(sql, orderNumber)
+	_, err := o.DB.Exec(sql, orderNumber)
 	if err != nil {
 		return fmt.Errorf("db update error: %w", err)
 	}
@@ -97,11 +112,11 @@ func InvalidateOrder(s *store.Store, orderNumber string) error {
 	return nil
 }
 
-func GetOrdersUser(s *store.Store, orderNumber string) (order, error) {
+func (o *OrderPG) GetOrdersUser(orderNumber string) (order, error) {
 	order1 := order{}
 
 	sql := "SELECT * FROM orders WHERE order_number = $1"
-	rows, err := s.DB.Queryx(sql, orderNumber)
+	rows, err := o.DB.Queryx(sql, orderNumber)
 	if err != nil {
 		return order1, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -121,19 +136,19 @@ func GetOrdersUser(s *store.Store, orderNumber string) (order, error) {
 	return order1, nil
 }
 
-func ProcessOrder(s *store.Store, orderNumber string, accrual float64) error {
-	order, err := GetOrdersUser(s, orderNumber)
+func (o *OrderPG) ProcessOrder(orderNumber string, accrual float64) error {
+	order, err := o.GetOrdersUser(orderNumber)
 	if err != nil {
 		return fmt.Errorf("store user balance error: %w", err)
 	}
 	username := order.Username
 
-	balance, err := withdrawstore.GetUserBalance(s, username)
+	balance, err := o.GetUserBalance(username)
 	if err != nil {
 		return fmt.Errorf("store user balance error: %w", err)
 	}
 
-	tx, err := s.DB.Begin()
+	tx, err := o.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("store tx error: %w", err)
 	}
@@ -141,35 +156,32 @@ func ProcessOrder(s *store.Store, orderNumber string, accrual float64) error {
 	sql := "UPDATE orders SET status = 'PROCESSED', accrual = $1 WHERE order_number = $2"
 	_, err = tx.Exec(sql, accrual, orderNumber)
 	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("db update error: %w", err)
 	}
 
 	sql = "UPDATE users SET balance = $1 WHERE username = $2"
 	_, err = tx.Exec(sql, balance.Balance+accrual, username)
 	if err != nil {
+		tx.Rollback()
 		return fmt.Errorf("store query error: %w", err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("store commit error: %w", err)
-	}
-
-	return nil
+	return tx.Commit()
 }
 
-func OrdersProcessing(s *store.Store) ([]order, error) {
+func (o *OrderPG) OrdersProcessing() ([]order, error) {
 	var result []order
 
 	sql := "UPDATE orders SET status = 'PROCESSING' WHERE status = 'NEW'"
-	_, err := s.DB.Exec(sql)
+	_, err := o.DB.Exec(sql)
 	if err != nil {
 		return result, fmt.Errorf("db update error: %w", err)
 	}
 
 	order1 := order{}
 	sql = "SELECT * FROM orders WHERE status = 'PROCESSING'"
-	rows, err := s.DB.Queryx(sql)
+	rows, err := o.DB.Queryx(sql)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -189,4 +201,28 @@ func OrdersProcessing(s *store.Store) ([]order, error) {
 	}
 
 	return result, nil
+}
+
+func (o *OrderPG) GetUserBalance(username string) (user, error) {
+	user1 := user{}
+
+	sql := "SELECT * FROM users WHERE username = $1"
+	rows, err := o.DB.Queryx(sql, username)
+	if err != nil {
+		return user1, fmt.Errorf("store query rows error: %w", err)
+	}
+	defer rows.Close()
+
+	rows.Next()
+	err = rows.StructScan(&user1)
+	if err != nil {
+		return user1, fmt.Errorf("store scan error: %w", err)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return user1, fmt.Errorf("store get rows error: %w", err)
+	}
+
+	return user1, nil
 }

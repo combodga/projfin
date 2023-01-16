@@ -1,23 +1,15 @@
-package withdrawhandler
+package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
-	"github.com/combodga/projfin/internal/withdraw/withdrawstore"
 	"github.com/labstack/echo/v4"
 )
-
-type WithdrawHandler struct {
-	Store *store.Store
-	DB    string
-	Accr  string
-}
 
 type balance struct {
 	Current   float64 `json:"current"`
@@ -35,15 +27,11 @@ type withdrawalsList struct {
 	ProcessedAt string  `json:"processed_at"`
 }
 
-func New(h *handler.Handler) *WithdrawHandler {
-	return &WithdrawHandler{
-		Store: h.Store,
-		DB:    h.DB,
-		Accr:  h.Accr,
+func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
+	if c.Get("username") == nil {
+		return fmt.Errorf("get username error")
 	}
-}
 
-func (wh *WithdrawHandler) PostBalanceWithdraw(c echo.Context) error {
 	username := c.Get("username").(string)
 
 	body, err := io.ReadAll(c.Request().Body)
@@ -66,7 +54,7 @@ func (wh *WithdrawHandler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	withdraw, err := withdrawstore.Withdraw(wh.Store, c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
+	withdraw, err := h.Store.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -77,10 +65,14 @@ func (wh *WithdrawHandler) PostBalanceWithdraw(c echo.Context) error {
 	return c.String(http.StatusOK, "status: ok")
 }
 
-func (wh *WithdrawHandler) GetBalance(c echo.Context) error {
+func (h *Handler) GetBalance(c echo.Context) error {
+	if c.Get("username") == nil {
+		return fmt.Errorf("get username error")
+	}
+
 	username := c.Get("username").(string)
 
-	bal, err := withdrawstore.GetUserBalance(wh.Store, username)
+	bal, err := h.Store.Order.GetUserBalance(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -88,10 +80,14 @@ func (wh *WithdrawHandler) GetBalance(c echo.Context) error {
 	return c.JSON(http.StatusOK, balance{bal.Balance, bal.Withdrawn})
 }
 
-func (wh *WithdrawHandler) GetWithdrawals(c echo.Context) error {
+func (h *Handler) GetWithdrawals(c echo.Context) error {
+	if c.Get("username") == nil {
+		return fmt.Errorf("get username error")
+	}
+
 	username := c.Get("username").(string)
 
-	w, err := withdrawstore.ListWithdrawals(wh.Store, c.Request().Context(), username)
+	w, err := h.Store.Withdraw.ListWithdrawals(c.Request().Context(), username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

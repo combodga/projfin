@@ -1,18 +1,11 @@
-package withdrawstore
+package store
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/combodga/projfin/internal/store"
+	"github.com/jmoiron/sqlx"
 )
-
-type user struct {
-	Username  string  `db:"username"`
-	Password  string  `db:"password"`
-	Balance   float64 `db:"balance"`
-	Withdrawn float64 `db:"withdrawn"`
-}
 
 type withdraw struct {
 	OrderNumber string  `db:"order_number"`
@@ -21,12 +14,20 @@ type withdraw struct {
 	ProcessedAt string  `db:"processed_at"`
 }
 
-func ListWithdrawals(s *store.Store, ctx context.Context, username string) ([]withdraw, error) {
+type WithdrawPG struct {
+	DB *sqlx.DB
+}
+
+func NewWithdrawPG(db *sqlx.DB) *WithdrawPG {
+	return &WithdrawPG{DB: db}
+}
+
+func (w *WithdrawPG) ListWithdrawals(ctx context.Context, username string) ([]withdraw, error) {
 	var result []withdraw
 
 	withdraw1 := withdraw{}
 	sql := "SELECT * FROM withdrawals WHERE username = $1"
-	rows, err := s.DB.QueryxContext(ctx, sql, username)
+	rows, err := w.DB.QueryxContext(ctx, sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
@@ -48,32 +49,8 @@ func ListWithdrawals(s *store.Store, ctx context.Context, username string) ([]wi
 	return result, nil
 }
 
-func GetUserBalance(s *store.Store, username string) (user, error) {
-	user1 := user{}
-
-	sql := "SELECT * FROM users WHERE username = $1"
-	rows, err := s.DB.Queryx(sql, username)
-	if err != nil {
-		return user1, fmt.Errorf("store query rows error: %w", err)
-	}
-	defer rows.Close()
-
-	rows.Next()
-	err = rows.StructScan(&user1)
-	if err != nil {
-		return user1, fmt.Errorf("store scan error: %w", err)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return user1, fmt.Errorf("store get rows error: %w", err)
-	}
-
-	return user1, nil
-}
-
-func Withdraw(s *store.Store, ctx context.Context, username, orderNumber string, sum float64) (int, error) {
-	tx, err := s.DB.Begin()
+func (w *WithdrawPG) Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error) {
+	tx, err := w.DB.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("store tx error: %w", err)
 	}
@@ -85,6 +62,7 @@ func Withdraw(s *store.Store, ctx context.Context, username, orderNumber string,
 	sql := "SELECT * FROM users WHERE username = $1"
 	err = tx.QueryRowContext(ctx, sql, username).Scan(&uUsername, &uPassword, &uBalance, &uWithdrawn)
 	if err != nil {
+		tx.Rollback()
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
 	if uBalance < sum {
@@ -94,19 +72,16 @@ func Withdraw(s *store.Store, ctx context.Context, username, orderNumber string,
 	sql = "UPDATE users SET balance = $1, withdrawn = $2 WHERE username = $3"
 	_, err = tx.ExecContext(ctx, sql, uBalance-sum, uWithdrawn+sum, username)
 	if err != nil {
+		tx.Rollback()
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
 
 	sql = "INSERT INTO withdrawals VALUES ($1, $2, $3, NOW())"
 	_, err = tx.ExecContext(ctx, sql, orderNumber, username, sum)
 	if err != nil {
+		tx.Rollback()
 		return 0, fmt.Errorf("store query error: %w", err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return 0, fmt.Errorf("store commit error: %w", err)
-	}
-
-	return 0, nil
+	return 0, tx.Commit()
 }
