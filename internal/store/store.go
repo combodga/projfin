@@ -1,39 +1,14 @@
 package store
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
 
-type Order interface {
-	CheckOrder(username, orderNumber string) (int, error)
-	MakeOrder(ctx context.Context, username, orderNumber string) error
-	ListOrders(username string) ([]order, error)
-	InvalidateOrder(orderNumber string) error
-	GetOrdersUser(orderNumber string) (order, error)
-	ProcessOrder(orderNumber string, accrual float64) error
-	OrdersProcessing() ([]order, error)
-	GetUserBalance(username string) (user, error)
-}
-
-type User interface {
-	DoRegister(ctx context.Context, username, password string) error
-	DoLogin(ctx context.Context, username, password string) error
-}
-
-type Withdraw interface {
-	ListWithdrawals(ctx context.Context, username string) ([]withdraw, error)
-	Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error)
-}
-
 type Store struct {
 	DB        *sqlx.DB
 	ErrorDupe error
-	Order
-	User
-	Withdraw
 }
 
 func New(database string) (*Store, error) {
@@ -42,13 +17,9 @@ func New(database string) (*Store, error) {
 		return nil, fmt.Errorf("store connect error: %w", err)
 	}
 
-	ed := fmt.Errorf("duplicate key error")
 	s := &Store{
 		DB:        db,
-		ErrorDupe: ed,
-		Order:     NewOrderPG(db, ed),
-		User:      NewUserPG(db, ed),
-		Withdraw:  NewWithdrawPG(db),
+		ErrorDupe: fmt.Errorf("duplicate key error"),
 	}
 
 	sql := "BEGIN;CREATE TABLE IF NOT EXISTS users (username text primary key,password text,balance double precision,withdrawn double precision);"

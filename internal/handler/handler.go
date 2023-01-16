@@ -20,7 +20,6 @@ func New(database, accr string) (*Handler, error) {
 	if err != nil {
 		err = fmt.Errorf("error store init: %w", err)
 	}
-
 	return &Handler{
 		Store: s,
 		DB:    database,
