@@ -8,11 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/combodga/projfin/internal/accrual"
 	"github.com/combodga/projfin/internal/handler"
-	"github.com/combodga/projfin/internal/order/orderhandler"
-	"github.com/combodga/projfin/internal/user/userhandler"
-	"github.com/combodga/projfin/internal/withdraw/withdrawhandler"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -28,20 +24,17 @@ func Go(run, database, accr string) error {
 	e.Use(middleware.Gzip())
 	e.Use(middleware.Decompress())
 
-	uh := userhandler.New(h)
-	e.POST("/api/user/register", uh.PostRegister)
-	e.POST("/api/user/login", uh.PostLogin)
+	e.POST("/api/user/register", h.PostRegister)
+	e.POST("/api/user/login", h.PostLogin)
 
-	oh := orderhandler.New(h)
-	e.POST("/api/user/orders", oh.PostOrders, handler.Auth)
-	e.GET("/api/user/orders", oh.GetOrders, handler.Auth)
+	e.POST("/api/user/orders", h.PostOrders, handler.Auth)
+	e.GET("/api/user/orders", h.GetOrders, handler.Auth)
 
-	wh := withdrawhandler.New(h)
-	e.POST("/api/user/balance/withdraw", wh.PostBalanceWithdraw, handler.Auth)
-	e.GET("/api/user/balance", wh.GetBalance, handler.Auth)
-	e.GET("/api/user/withdrawals", wh.GetWithdrawals, handler.Auth)
+	e.POST("/api/user/balance/withdraw", h.PostBalanceWithdraw, handler.Auth)
+	e.GET("/api/user/balance", h.GetBalance, handler.Auth)
+	e.GET("/api/user/withdrawals", h.GetWithdrawals, handler.Auth)
 
-	go accrual.FetchAccruals(h)
+	go h.FetchAccruals()
 
 	go func() {
 		if err := e.Start(run); err != nil && err != http.ErrServerClosed {

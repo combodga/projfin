@@ -18,6 +18,10 @@ func main() {
 	flag.StringVar(&accr, "r", os.Getenv("ACCRUAL_SYSTEM_ADDRESS"), "accrual system address")
 	flag.Parse()
 
+	if run == "" {
+		run = ":8080"
+	}
+
 	err := app.Go(run, db, accr)
 	if err != nil {
 		log.Fatal(err)
