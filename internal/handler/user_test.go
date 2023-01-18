@@ -21,6 +21,7 @@ func Test_PostRegister(t *testing.T) {
 
 	e := echo.New()
 	rand.Seed(time.Now().UnixNano())
+
 	s := "{\"login\":\"" + strconv.Itoa(rand.Intn(1e10)) + "\",\"password\":\"test\"}"
 	request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/register", strings.NewReader(s))
 

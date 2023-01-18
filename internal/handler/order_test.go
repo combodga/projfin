@@ -2,22 +2,21 @@ package handler
 
 import (
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/combodga/projfin/internal/luhn"
 	"github.com/labstack/echo/v4"
 )
 
 var rnd string
 
 func Test_Init(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	rnd = strconv.Itoa(rand.Intn(1e10))
+	// rand.Seed(time.Now().UnixNano())
+	// rnd = strconv.Itoa(rand.Intn(1e10))
+	rnd = luhn.GenerateLuhn(10)
 }
 
 func Test_PostOrders(t *testing.T) {
@@ -34,23 +33,15 @@ func Test_PostOrders(t *testing.T) {
 	c := e.NewContext(request, recorder)
 	h.PostRegister(c)
 
-	request = httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/login", strings.NewReader(s))
-
-	recorder = httptest.NewRecorder()
-	c = e.NewContext(request, recorder)
-	h.PostLogin(c)
-
-	result := recorder.Result()
-	defer result.Body.Close()
-
 	s = rnd
 	request = httptest.NewRequest(http.MethodPost, "http://localhost:8080/api/user/orders", strings.NewReader(s))
 
 	recorder = httptest.NewRecorder()
 	c = e.NewContext(request, recorder)
+	c.Set("username", "check")
 	h.PostOrders(c)
 
-	result = recorder.Result()
+	result := recorder.Result()
 	defer result.Body.Close()
 
 	if result.StatusCode != http.StatusAccepted {
@@ -103,12 +94,12 @@ func Test_GetOrders(t *testing.T) {
 		t.Errorf("expected status %v; got %v", http.StatusOK, result.StatusCode)
 	}
 
-	// body, err := io.ReadAll(result.Body)
-	// if err != nil {
-	// 	t.Errorf("error parsing response: %v", err)
-	// }
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Errorf("error parsing response: %v", err)
+	}
 
-	// if string(body) != "status: ok" {
-	// 	t.Errorf("expected answer to be %v; got %v", "status: ok", string(body))
-	// }
+	if strings.Contains(string(body), "\""+rnd+"\"") {
+		t.Errorf("expected answer must include %v; got %v", "\""+rnd+"\"", string(body))
+	}
 }
