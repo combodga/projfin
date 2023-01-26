@@ -9,12 +9,11 @@ import (
 )
 
 type UserPG struct {
-	DB        *sqlx.DB
-	ErrorDupe error
+	DB *sqlx.DB
 }
 
-func NewUserPG(db *sqlx.DB, ed error) *UserPG {
-	return &UserPG{DB: db, ErrorDupe: ed}
+func NewUserPG(db *sqlx.DB) *UserPG {
+	return &UserPG{DB: db}
 }
 
 func (u *UserPG) DoRegister(ctx context.Context, username, password string) error {
@@ -23,7 +22,7 @@ func (u *UserPG) DoRegister(ctx context.Context, username, password string) erro
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return u.ErrorDupe
+				return ErrorDupe
 			}
 		}
 		return fmt.Errorf("store query error: %w", err)

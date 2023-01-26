@@ -7,15 +7,47 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/combodga/projfin"
+	"github.com/combodga/projfin/internal/store"
 )
 
-type Accrual struct {
-	OrderNum string  `json:"order"`
-	Status   string  `json:"status"`
-	Accrual  float64 `json:"accrual"`
+func FetchAccruals(accr string, stores *store.Store) error {
+	for {
+		getAccruals(accr, stores)
+		time.Sleep(300 * time.Millisecond)
+	}
 }
 
-func Calculate(accr, orderNumber string) (string, float64, error) {
+func getAccruals(accr string, stores *store.Store) error {
+	orders, err := stores.Order.OrdersProcessing()
+	if err != nil {
+		return fmt.Errorf("update accrual error: %w", err)
+	}
+
+	for _, order := range orders {
+		status, accrual, err := calculate(accr, order.OrderNumber)
+		if err != nil {
+			return fmt.Errorf("update accrual order error: %w", err)
+		}
+
+		if status == "INVALID" {
+			err = stores.Order.InvalidateOrder(order.OrderNumber)
+			if err != nil {
+				return fmt.Errorf("set order invalid error: %w", err)
+			}
+		} else if status == "PROCESSED" {
+			err = stores.Order.ProcessOrder(order.OrderNumber, accrual)
+			if err != nil {
+				return fmt.Errorf("set order processed error: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func calculate(accr string, orderNumber string) (string, float64, error) {
 	resp, err := http.Get(accr + "/api/orders/" + orderNumber)
 	if err != nil {
 		return "", 0, fmt.Errorf("error getting accrual: %w", err)
@@ -36,7 +68,7 @@ func Calculate(accr, orderNumber string) (string, float64, error) {
 		return "", 0, fmt.Errorf("error getting accrual: %w", err)
 	}
 
-	var a Accrual
+	var a projfin.Accrual
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		return "", 0, fmt.Errorf("error getting accrual: %w", err)

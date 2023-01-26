@@ -4,37 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/combodga/projfin"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/lib/pq"
 )
 
-type order struct {
-	OrderNumber string  `db:"order_number"`
-	Username    string  `db:"username"`
-	Status      string  `db:"status"`
-	Accrual     float64 `db:"accrual"`
-	UploadedAt  string  `db:"uploaded_at"`
-}
-
-type user struct {
-	Username  string  `db:"username"`
-	Password  string  `db:"password"`
-	Balance   float64 `db:"balance"`
-	Withdrawn float64 `db:"withdrawn"`
-}
-
 type OrderPG struct {
-	DB        *sqlx.DB
-	ErrorDupe error
+	DB *sqlx.DB
 }
 
-func NewOrderPG(db *sqlx.DB, ed error) *OrderPG {
-	return &OrderPG{DB: db, ErrorDupe: ed}
+func NewOrderPG(db *sqlx.DB) *OrderPG {
+	return &OrderPG{DB: db}
 }
 
 func (o *OrderPG) CheckOrder(username, orderNumber string) (int, error) {
-	order1 := order{}
+	order1 := projfin.Order{}
 	sql := "SELECT * FROM orders WHERE order_number = $1"
 	rows, err := o.DB.Queryx(sql, orderNumber)
 	if err != nil {
@@ -67,7 +52,7 @@ func (o *OrderPG) MakeOrder(ctx context.Context, username, orderNumber string) e
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
-				return o.ErrorDupe
+				return ErrorDupe
 			}
 		}
 		return fmt.Errorf("store query error: %w", err)
@@ -75,10 +60,10 @@ func (o *OrderPG) MakeOrder(ctx context.Context, username, orderNumber string) e
 	return nil
 }
 
-func (o *OrderPG) ListOrders(username string) ([]order, error) {
-	var result []order
+func (o *OrderPG) ListOrders(username string) ([]projfin.Order, error) {
+	var result []projfin.Order
 
-	order1 := order{}
+	order1 := projfin.Order{}
 	sql := "SELECT * FROM orders WHERE username = $1"
 	rows, err := o.DB.Queryx(sql, username)
 	if err != nil {
@@ -112,8 +97,8 @@ func (o *OrderPG) InvalidateOrder(orderNumber string) error {
 	return nil
 }
 
-func (o *OrderPG) GetOrdersUser(orderNumber string) (order, error) {
-	order1 := order{}
+func (o *OrderPG) GetOrdersUser(orderNumber string) (projfin.Order, error) {
+	order1 := projfin.Order{}
 
 	sql := "SELECT * FROM orders WHERE order_number = $1"
 	rows, err := o.DB.Queryx(sql, orderNumber)
@@ -170,8 +155,8 @@ func (o *OrderPG) ProcessOrder(orderNumber string, accrual float64) error {
 	return tx.Commit()
 }
 
-func (o *OrderPG) OrdersProcessing() ([]order, error) {
-	var result []order
+func (o *OrderPG) OrdersProcessing() ([]projfin.Order, error) {
+	var result []projfin.Order
 
 	sql := "UPDATE orders SET status = 'PROCESSING' WHERE status = 'NEW'"
 	_, err := o.DB.Exec(sql)
@@ -179,7 +164,7 @@ func (o *OrderPG) OrdersProcessing() ([]order, error) {
 		return result, fmt.Errorf("db update error: %w", err)
 	}
 
-	order1 := order{}
+	order1 := projfin.Order{}
 	sql = "SELECT * FROM orders WHERE status = 'PROCESSING'"
 	rows, err := o.DB.Queryx(sql)
 	if err != nil {
@@ -203,8 +188,8 @@ func (o *OrderPG) OrdersProcessing() ([]order, error) {
 	return result, nil
 }
 
-func (o *OrderPG) GetUserBalance(username string) (user, error) {
-	user1 := user{}
+func (o *OrderPG) GetUserBalance(username string) (projfin.User, error) {
+	user1 := projfin.User{}
 
 	sql := "SELECT * FROM users WHERE username = $1"
 	rows, err := o.DB.Queryx(sql, username)

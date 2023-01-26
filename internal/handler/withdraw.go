@@ -54,7 +54,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	withdraw, err := h.Store.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
+	withdraw, err := h.services.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -72,7 +72,7 @@ func (h *Handler) GetBalance(c echo.Context) error {
 
 	username := c.Get("username").(string)
 
-	bal, err := h.Store.Order.GetUserBalance(username)
+	bal, err := h.services.Order.GetUserBalance(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -87,7 +87,7 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 
 	username := c.Get("username").(string)
 
-	w, err := h.Store.Withdraw.ListWithdrawals(c.Request().Context(), username)
+	w, err := h.services.Withdraw.ListWithdrawals(c.Request().Context(), username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

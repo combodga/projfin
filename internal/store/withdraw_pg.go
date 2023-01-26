@@ -4,15 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/combodga/projfin"
 	"github.com/jmoiron/sqlx"
 )
-
-type withdraw struct {
-	OrderNumber string  `db:"order_number"`
-	Username    string  `db:"username"`
-	Sum         float64 `db:"sum"`
-	ProcessedAt string  `db:"processed_at"`
-}
 
 type WithdrawPG struct {
 	DB *sqlx.DB
@@ -22,10 +16,10 @@ func NewWithdrawPG(db *sqlx.DB) *WithdrawPG {
 	return &WithdrawPG{DB: db}
 }
 
-func (w *WithdrawPG) ListWithdrawals(ctx context.Context, username string) ([]withdraw, error) {
-	var result []withdraw
+func (w *WithdrawPG) ListWithdrawals(ctx context.Context, username string) ([]projfin.Withdraw, error) {
+	var result []projfin.Withdraw
 
-	withdraw1 := withdraw{}
+	withdraw1 := projfin.Withdraw{}
 	sql := "SELECT * FROM withdrawals WHERE username = $1"
 	rows, err := w.DB.QueryxContext(ctx, sql, username)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
 )
@@ -27,8 +28,8 @@ func (h *Handler) PostRegister(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	err = h.Store.User.DoRegister(c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
-	if errors.Is(err, h.Store.ErrorDupe) {
+	err = h.services.User.DoRegister(c.Request().Context(), cred.Username, user.PasswordHasher(cred.Password))
+	if errors.Is(err, store.ErrorDupe) {
 		return c.String(http.StatusConflict, "status: conflict")
 	} else if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
@@ -51,7 +52,7 @@ func (h *Handler) PostLogin(c echo.Context) error {
 	}
 
 	hash := user.PasswordHasher(cred.Password)
-	err = h.Store.User.DoLogin(c.Request().Context(), cred.Username, hash)
+	err = h.services.User.DoLogin(c.Request().Context(), cred.Username, hash)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")
 	}

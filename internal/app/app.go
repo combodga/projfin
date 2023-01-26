@@ -8,37 +8,29 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/combodga/projfin/internal/accrual"
 	"github.com/combodga/projfin/internal/handler"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/combodga/projfin/internal/service"
+	"github.com/combodga/projfin/internal/store"
 )
 
 func Go(run, database, accr string) error {
-	h, err := handler.New(database, accr)
+	db, err := store.NewPGDB(database)
 	if err != nil {
-		return fmt.Errorf("error handler init: %w", err)
+		return fmt.Errorf("error initializing db: %w", err)
 	}
 
-	e := echo.New()
-	e.Use(middleware.Gzip())
-	e.Use(middleware.Decompress())
+	stores := store.NewStore(db)
+	services := service.NewService(stores)
+	handlers := handler.NewHandler(services)
 
-	e.POST("/api/user/register", h.PostRegister)
-	e.POST("/api/user/login", h.PostLogin)
+	go accrual.FetchAccruals(accr, stores)
 
-	e.POST("/api/user/orders", h.PostOrders, handler.Auth)
-	e.GET("/api/user/orders", h.GetOrders, handler.Auth)
-
-	e.POST("/api/user/balance/withdraw", h.PostBalanceWithdraw, handler.Auth)
-	e.GET("/api/user/balance", h.GetBalance, handler.Auth)
-	e.GET("/api/user/withdrawals", h.GetWithdrawals, handler.Auth)
-
-	go h.FetchAccruals()
+	e := handlers.InitRoutes()
 
 	go func() {
 		if err := e.Start(run); err != nil && err != http.ErrServerClosed {
-			h.Store.Close()
+			store.PGClose(db)
 			e.Logger.Fatal("shutting down the server")
 		}
 	}()
@@ -49,7 +41,7 @@ func Go(run, database, accr string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		h.Store.Close()
+		store.PGClose(db)
 		e.Logger.Fatal(err)
 	}
 

@@ -1,12 +1,13 @@
-package store
+package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/combodga/projfin"
-	"github.com/jmoiron/sqlx"
+	"github.com/combodga/projfin/internal/store"
 )
+
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type Order interface {
 	CheckOrder(username, orderNumber string) (int, error)
@@ -29,28 +30,16 @@ type Withdraw interface {
 	Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error)
 }
 
-// type Store struct {
-// 	DB        *sqlx.DB
-// 	ErrorDupe error
-// 	Order
-// 	User
-// 	Withdraw
-// }
-
-type Store struct {
+type Service struct {
 	Order
 	User
 	Withdraw
 }
 
-var (
-	ErrorDupe = fmt.Errorf("duplicate key error")
-)
-
-func NewStore(db *sqlx.DB) *Store {
-	return &Store{
-		Order:    NewOrderPG(db),
-		User:     NewUserPG(db),
-		Withdraw: NewWithdrawPG(db),
+func NewService(stores *store.Store) *Service {
+	return &Service{
+		Order:    NewOrderService(stores.Order),
+		User:     NewUserService(stores.User),
+		Withdraw: NewWithdrawService(stores.Withdraw),
 	}
 }

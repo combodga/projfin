@@ -39,7 +39,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	code, err := h.Store.Order.CheckOrder(username, order)
+	code, err := h.services.Order.CheckOrder(username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -49,7 +49,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusOK, "status: ok")
 	}
 
-	err = h.Store.Order.MakeOrder(c.Request().Context(), username, order)
+	err = h.services.Order.MakeOrder(c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -64,7 +64,7 @@ func (h *Handler) GetOrders(c echo.Context) error {
 
 	username := c.Get("username").(string)
 
-	orders, err := h.Store.Order.ListOrders(username)
+	orders, err := h.services.Order.ListOrders(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
