@@ -8,6 +8,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+//go:generate mockgen -source=store.go -destination=mocks/mock.go
+
 type Order interface {
 	CheckOrder(username, orderNumber string) (int, error)
 	MakeOrder(ctx context.Context, username, orderNumber string) error
