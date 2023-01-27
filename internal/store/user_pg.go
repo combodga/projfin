@@ -1,9 +1,9 @@
 package store
 
 import (
-	"context"
 	"fmt"
 
+	"github.com/combodga/projfin"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
@@ -16,9 +16,9 @@ func NewUserPG(db *sqlx.DB) *UserPG {
 	return &UserPG{DB: db}
 }
 
-func (u *UserPG) DoRegister(ctx context.Context, username, password string) error {
+func (u *UserPG) DoRegister(username, password string) error { // ctx context.Context,
 	sql := "INSERT INTO users VALUES ($1, $2, 0, 0)"
-	_, err := u.DB.ExecContext(ctx, sql, username, password)
+	_, err := u.DB.ExecContext(projfin.Context, sql, username, password)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {
@@ -30,10 +30,10 @@ func (u *UserPG) DoRegister(ctx context.Context, username, password string) erro
 	return nil
 }
 
-func (u *UserPG) DoLogin(ctx context.Context, username, password string) error {
+func (u *UserPG) DoLogin(username, password string) error {
 	var count int
 	sql := "SELECT COUNT(*) FROM users WHERE username = $1 AND password = $2"
-	rows, err := u.DB.QueryxContext(ctx, sql, username, password)
+	rows, err := u.DB.QueryxContext(projfin.Context, sql, username, password)
 	if err != nil {
 		return fmt.Errorf("store query rows error: %w", err)
 	}

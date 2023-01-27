@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/combodga/projfin"
@@ -46,9 +45,9 @@ func (o *OrderPG) CheckOrder(username, orderNumber string) (int, error) {
 	return 0, nil
 }
 
-func (o *OrderPG) MakeOrder(ctx context.Context, username, orderNumber string) error {
+func (o *OrderPG) MakeOrder(username, orderNumber string) error {
 	sql := "INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())"
-	_, err := o.DB.ExecContext(ctx, sql, orderNumber, username)
+	_, err := o.DB.ExecContext(projfin.Context, sql, orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == "23505" {

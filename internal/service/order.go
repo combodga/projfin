@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-
 	"github.com/combodga/projfin"
 	"github.com/combodga/projfin/internal/store"
 )
@@ -19,8 +17,8 @@ func (s *OrderService) CheckOrder(username, orderNumber string) (int, error) {
 	return s.so.CheckOrder(username, orderNumber)
 }
 
-func (s *OrderService) MakeOrder(ctx context.Context, username, orderNumber string) error {
-	return s.so.MakeOrder(ctx, username, orderNumber)
+func (s *OrderService) MakeOrder(username, orderNumber string) error {
+	return s.so.MakeOrder(username, orderNumber)
 }
 
 func (s *OrderService) ListOrders(username string) ([]projfin.Order, error) {

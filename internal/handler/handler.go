@@ -9,27 +9,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-/*
-type Handler struct {
-	Store *store.Store
-	DB    string
-	Accr  string
-}
-
-func New(database, accr string) (*Handler, error) {
-	s, err := store.New(database)
-	if err != nil {
-		err = fmt.Errorf("error store init: %w", err)
-	}
-
-	return &Handler{
-		Store: s,
-		DB:    database,
-		Accr:  accr,
-	}, err
-}
-*/
-
 // Middleware
 
 func Auth(next echo.HandlerFunc) echo.HandlerFunc {

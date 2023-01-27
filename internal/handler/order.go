@@ -49,7 +49,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusOK, "status: ok")
 	}
 
-	err = h.services.Order.MakeOrder(c.Request().Context(), username, order)
+	err = h.services.Order.MakeOrder(username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

@@ -7,25 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/combodga/projfin"
 	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
 )
-
-type balance struct {
-	Current   float64 `json:"current"`
-	Withdrawn float64 `json:"withdrawn"`
-}
-
-type withdraw struct {
-	OrderNum string  `json:"order"`
-	Sum      float64 `json:"sum"`
-}
-
-type withdrawalsList struct {
-	OrderNum    string  `json:"order"`
-	Sum         float64 `json:"sum"`
-	ProcessedAt string  `json:"processed_at"`
-}
 
 func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 	if c.Get("username") == nil {
@@ -39,7 +24,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
 
-	var wdraw withdraw
+	var wdraw projfin.WithdrawShort
 	err = json.Unmarshal(body, &wdraw)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
@@ -54,7 +39,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
-	withdraw, err := h.services.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
+	withdraw, err := h.services.Withdraw.Withdraw(username, wdraw.OrderNum, wdraw.Sum)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -77,7 +62,7 @@ func (h *Handler) GetBalance(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
 
-	return c.JSON(http.StatusOK, balance{bal.Balance, bal.Withdrawn})
+	return c.JSON(http.StatusOK, projfin.Balance{Current: bal.Balance, Withdrawn: bal.Withdrawn})
 }
 
 func (h *Handler) GetWithdrawals(c echo.Context) error {
@@ -87,7 +72,7 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 
 	username := c.Get("username").(string)
 
-	w, err := h.services.Withdraw.ListWithdrawals(c.Request().Context(), username)
+	w, err := h.services.Withdraw.ListWithdrawals(username)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}
@@ -95,9 +80,9 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 		return c.String(http.StatusNoContent, "status: no content")
 	}
 
-	var withdrawals []withdrawalsList
+	var withdrawals []projfin.WithdrawalsList
 	for _, withdraw := range w {
-		withdrawals = append(withdrawals, withdrawalsList{withdraw.OrderNumber, withdraw.Sum, withdraw.ProcessedAt})
+		withdrawals = append(withdrawals, projfin.WithdrawalsList{OrderNum: withdraw.OrderNumber, Sum: withdraw.Sum, ProcessedAt: withdraw.ProcessedAt})
 	}
 
 	return c.JSON(http.StatusOK, withdrawals)

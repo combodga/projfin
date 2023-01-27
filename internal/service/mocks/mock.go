@@ -176,31 +176,31 @@ func (m *MockUser) EXPECT() *MockUserMockRecorder {
 }
 
 // DoLogin mocks base method.
-func (m *MockUser) DoLogin(ctx context.Context, username, password string) error {
+func (m *MockUser) DoLogin(username, password string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoLogin", ctx, username, password)
+	ret := m.ctrl.Call(m, "DoLogin", username, password)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DoLogin indicates an expected call of DoLogin.
-func (mr *MockUserMockRecorder) DoLogin(ctx, username, password interface{}) *gomock.Call {
+func (mr *MockUserMockRecorder) DoLogin(username, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoLogin", reflect.TypeOf((*MockUser)(nil).DoLogin), ctx, username, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoLogin", reflect.TypeOf((*MockUser)(nil).DoLogin), username, password)
 }
 
 // DoRegister mocks base method.
-func (m *MockUser) DoRegister(ctx context.Context, username, password string) error {
+func (m *MockUser) DoRegister(username, password string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoRegister", ctx, username, password)
+	ret := m.ctrl.Call(m, "DoRegister", username, password)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DoRegister indicates an expected call of DoRegister.
-func (mr *MockUserMockRecorder) DoRegister(ctx, username, password interface{}) *gomock.Call {
+func (mr *MockUserMockRecorder) DoRegister(username, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoRegister", reflect.TypeOf((*MockUser)(nil).DoRegister), ctx, username, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoRegister", reflect.TypeOf((*MockUser)(nil).DoRegister), username, password)
 }
 
 // MockWithdraw is a mock of Withdraw interface.

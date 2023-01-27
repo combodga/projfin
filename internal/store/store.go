@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/combodga/projfin"
@@ -12,7 +11,7 @@ import (
 
 type Order interface {
 	CheckOrder(username, orderNumber string) (int, error)
-	MakeOrder(ctx context.Context, username, orderNumber string) error
+	MakeOrder(username, orderNumber string) error
 	ListOrders(username string) ([]projfin.Order, error)
 	InvalidateOrder(orderNumber string) error
 	GetOrdersUser(orderNumber string) (projfin.Order, error)
@@ -22,22 +21,14 @@ type Order interface {
 }
 
 type User interface {
-	DoRegister(ctx context.Context, username, password string) error
-	DoLogin(ctx context.Context, username, password string) error
+	DoRegister(username, password string) error
+	DoLogin(username, password string) error
 }
 
 type Withdraw interface {
-	ListWithdrawals(ctx context.Context, username string) ([]projfin.Withdraw, error)
-	Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error)
+	ListWithdrawals(username string) ([]projfin.Withdraw, error)
+	Withdraw(username, orderNumber string, sum float64) (int, error)
 }
-
-// type Store struct {
-// 	DB        *sqlx.DB
-// 	ErrorDupe error
-// 	Order
-// 	User
-// 	Withdraw
-// }
 
 type Store struct {
 	Order
