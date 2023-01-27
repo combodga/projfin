@@ -49,6 +49,7 @@ func (h *Handler) PostLogin(c echo.Context) error {
 	}
 
 	hash := user.PasswordHasher(cred.Password)
+	projfin.Context = c.Request().Context()
 	err = h.services.User.DoLogin(cred.Username, hash)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")

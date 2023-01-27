@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/combodga/projfin"
 	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
 )
@@ -39,6 +40,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
+	projfin.Context = c.Request().Context()
 	code, err := h.services.Order.CheckOrder(username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
