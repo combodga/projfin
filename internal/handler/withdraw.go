@@ -39,6 +39,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	}
 
+	projfin.Context = c.Request().Context()
 	withdraw, err := h.services.Withdraw.Withdraw(username, wdraw.OrderNum, wdraw.Sum)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")

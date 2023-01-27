@@ -16,7 +16,7 @@ func NewUserPG(db *sqlx.DB) *UserPG {
 	return &UserPG{DB: db}
 }
 
-func (u *UserPG) DoRegister(username, password string) error { // ctx context.Context,
+func (u *UserPG) DoRegister(username, password string) error {
 	sql := "INSERT INTO users VALUES ($1, $2, 0, 0)"
 	_, err := u.DB.ExecContext(projfin.Context, sql, username, password)
 	if err != nil {
