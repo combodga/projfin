@@ -20,7 +20,7 @@ func (w *WithdrawPG) ListWithdrawals(username string) ([]projfin.Withdraw, error
 
 	withdraw1 := projfin.Withdraw{}
 	sql := "SELECT * FROM withdrawals WHERE username = $1"
-	rows, err := w.DB.QueryxContext(projfin.Context, sql, username)
+	rows, err := w.DB.Queryx(sql, username)
 	if err != nil {
 		return result, fmt.Errorf("store query rows error: %w", err)
 	}
