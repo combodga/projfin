@@ -5,7 +5,6 @@
 package mock_service
 
 import (
-	context "context"
 	reflect "reflect"
 
 	projfin "github.com/combodga/projfin"
@@ -110,17 +109,17 @@ func (mr *MockOrderMockRecorder) ListOrders(username interface{}) *gomock.Call {
 }
 
 // MakeOrder mocks base method.
-func (m *MockOrder) MakeOrder(ctx context.Context, username, orderNumber string) error {
+func (m *MockOrder) MakeOrder(username, orderNumber string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MakeOrder", ctx, username, orderNumber)
+	ret := m.ctrl.Call(m, "MakeOrder", username, orderNumber)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MakeOrder indicates an expected call of MakeOrder.
-func (mr *MockOrderMockRecorder) MakeOrder(ctx, username, orderNumber interface{}) *gomock.Call {
+func (mr *MockOrderMockRecorder) MakeOrder(username, orderNumber interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeOrder", reflect.TypeOf((*MockOrder)(nil).MakeOrder), ctx, username, orderNumber)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeOrder", reflect.TypeOf((*MockOrder)(nil).MakeOrder), username, orderNumber)
 }
 
 // OrdersProcessing mocks base method.
@@ -227,31 +226,31 @@ func (m *MockWithdraw) EXPECT() *MockWithdrawMockRecorder {
 }
 
 // ListWithdrawals mocks base method.
-func (m *MockWithdraw) ListWithdrawals(ctx context.Context, username string) ([]projfin.Withdraw, error) {
+func (m *MockWithdraw) ListWithdrawals(username string) ([]projfin.Withdraw, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListWithdrawals", ctx, username)
+	ret := m.ctrl.Call(m, "ListWithdrawals", username)
 	ret0, _ := ret[0].([]projfin.Withdraw)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListWithdrawals indicates an expected call of ListWithdrawals.
-func (mr *MockWithdrawMockRecorder) ListWithdrawals(ctx, username interface{}) *gomock.Call {
+func (mr *MockWithdrawMockRecorder) ListWithdrawals(username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWithdrawals", reflect.TypeOf((*MockWithdraw)(nil).ListWithdrawals), ctx, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWithdrawals", reflect.TypeOf((*MockWithdraw)(nil).ListWithdrawals), username)
 }
 
 // Withdraw mocks base method.
-func (m *MockWithdraw) Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error) {
+func (m *MockWithdraw) Withdraw(username, orderNumber string, sum float64) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Withdraw", ctx, username, orderNumber, sum)
+	ret := m.ctrl.Call(m, "Withdraw", username, orderNumber, sum)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Withdraw indicates an expected call of Withdraw.
-func (mr *MockWithdrawMockRecorder) Withdraw(ctx, username, orderNumber, sum interface{}) *gomock.Call {
+func (mr *MockWithdrawMockRecorder) Withdraw(username, orderNumber, sum interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdraw", reflect.TypeOf((*MockWithdraw)(nil).Withdraw), ctx, username, orderNumber, sum)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdraw", reflect.TypeOf((*MockWithdraw)(nil).Withdraw), username, orderNumber, sum)
 }
