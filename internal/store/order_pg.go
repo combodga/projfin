@@ -41,10 +41,10 @@ func (o *OrderPG) CheckOrder(username, orderNumber string) (projfin.OrderStatus,
 
 	err = rows.Err()
 	if err != nil {
-		return 0, fmt.Errorf("store get rows error: %w", err)
+		return projfin.OrderStatusError, fmt.Errorf("store get rows error: %w", err)
 	}
 
-	return 0, nil
+	return projfin.OrderStatusOK, nil
 }
 
 func (o *OrderPG) MakeOrder(username, orderNumber string) error {
