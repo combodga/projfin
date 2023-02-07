@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/combodga/projfin"
 	"github.com/jmoiron/sqlx"
@@ -59,7 +60,7 @@ func (w *WithdrawPG) Withdraw(username, orderNumber string, sum float64) (int, e
 		return 0, fmt.Errorf("store query rows error: %w", err)
 	}
 	if uBalance < sum {
-		return 402, nil
+		return http.StatusPaymentRequired, nil
 	}
 
 	sql = "UPDATE users SET balance = $1, withdrawn = $2 WHERE username = $3"

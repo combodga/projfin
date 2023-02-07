@@ -35,10 +35,10 @@ func (m *MockOrder) EXPECT() *MockOrderMockRecorder {
 }
 
 // CheckOrder mocks base method.
-func (m *MockOrder) CheckOrder(username, orderNumber string) (int, error) {
+func (m *MockOrder) CheckOrder(username, orderNumber string) (projfin.OrderStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckOrder", username, orderNumber)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(projfin.OrderStatus)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

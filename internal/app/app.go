@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,7 +35,7 @@ func Go(run, database, accr string) error {
 	go func() {
 		if err := e.Start(run); err != nil && err != http.ErrServerClosed {
 			store.PGClose(db)
-			e.Logger.Fatal("shutting down the server")
+			log.Printf("server error: %v", err)
 		}
 	}()
 
@@ -45,7 +46,7 @@ func Go(run, database, accr string) error {
 	defer cancel2()
 	if err := e.Shutdown(ctx2); err != nil {
 		store.PGClose(db)
-		e.Logger.Fatal(err)
+		log.Printf("server shutdown error: %v", err)
 	}
 
 	return nil

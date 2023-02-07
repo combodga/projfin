@@ -35,12 +35,11 @@ func (m *MockOrder) EXPECT() *MockOrderMockRecorder {
 }
 
 // CheckOrder mocks base method.
-func (m *MockOrder) CheckOrder(username, orderNumber string) (int, error) {
+func (m *MockOrder) CheckOrder(username, orderNumber string) projfin.OrderStatus {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckOrder", username, orderNumber)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(projfin.OrderStatus)
+	return ret0
 }
 
 // CheckOrder indicates an expected call of CheckOrder.
@@ -94,10 +93,10 @@ func (mr *MockOrderMockRecorder) InvalidateOrder(orderNumber interface{}) *gomoc
 }
 
 // ListOrders mocks base method.
-func (m *MockOrder) ListOrders(username string) ([]projfin.Order, error) {
+func (m *MockOrder) ListOrders(username string) ([]projfin.OrderListItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListOrders", username)
-	ret0, _ := ret[0].([]projfin.Order)
+	ret0, _ := ret[0].([]projfin.OrderListItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -226,10 +225,10 @@ func (m *MockWithdraw) EXPECT() *MockWithdrawMockRecorder {
 }
 
 // ListWithdrawals mocks base method.
-func (m *MockWithdraw) ListWithdrawals(username string) ([]projfin.Withdraw, error) {
+func (m *MockWithdraw) ListWithdrawals(username string) ([]projfin.WithdrawalsListItem, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListWithdrawals", username)
-	ret0, _ := ret[0].([]projfin.Withdraw)
+	ret0, _ := ret[0].([]projfin.WithdrawalsListItem)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -241,12 +240,11 @@ func (mr *MockWithdrawMockRecorder) ListWithdrawals(username interface{}) *gomoc
 }
 
 // Withdraw mocks base method.
-func (m *MockWithdraw) Withdraw(username, orderNumber string, sum float64) (int, error) {
+func (m *MockWithdraw) Withdraw(username, orderNumber string, sum float64) projfin.OrderStatus {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Withdraw", username, orderNumber, sum)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(projfin.OrderStatus)
+	return ret0
 }
 
 // Withdraw indicates an expected call of Withdraw.

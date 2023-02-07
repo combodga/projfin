@@ -4,19 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/combodga/projfin"
-	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
 )
-
-type order struct {
-	Number     string  `json:"number"`
-	Status     string  `json:"status"`
-	Accrual    float64 `json:"accrual"`
-	UploadedAt string  `json:"uploaded_at"`
-}
 
 func (h *Handler) PostOrders(c echo.Context) error {
 	if c.Get("username") == nil {
@@ -31,23 +22,18 @@ func (h *Handler) PostOrders(c echo.Context) error {
 	}
 
 	order := string(body)
-	orderNum, err := strconv.Atoi(order)
-	if err != nil {
-		return c.String(http.StatusBadRequest, "status: bad request")
-	}
-
-	if !user.ValidateOrderNumber(orderNum) {
-		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
-	}
-
 	projfin.Context = c.Request().Context()
-	code, err := h.services.Order.CheckOrder(username, order)
-	if err != nil {
+	orderStatus := h.services.Order.CheckOrder(username, order)
+	switch orderStatus {
+	case projfin.OrderStatusNotANumber:
+		return c.String(http.StatusBadRequest, "status: bad request")
+	case projfin.OrderStatusNotValid:
+		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
+	case projfin.OrderStatusError:
 		return c.String(http.StatusInternalServerError, "status: internal server error")
-	}
-	if code == 2 {
+	case projfin.OrderStatusOccupied:
 		return c.String(http.StatusConflict, "status: conflict")
-	} else if code == 1 {
+	case projfin.OrderStatusExists:
 		return c.String(http.StatusOK, "status: ok")
 	}
 
@@ -74,10 +60,5 @@ func (h *Handler) GetOrders(c echo.Context) error {
 		return c.String(http.StatusNoContent, "status: no content")
 	}
 
-	var ordersList []order
-	for _, o := range orders {
-		ordersList = append(ordersList, order{o.OrderNumber, o.Status, o.Accrual, o.UploadedAt})
-	}
-
-	return c.JSON(http.StatusOK, ordersList)
+	return c.JSON(http.StatusOK, orders)
 }

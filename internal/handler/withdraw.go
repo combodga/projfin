@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/combodga/projfin"
-	"github.com/combodga/projfin/internal/user"
 	"github.com/labstack/echo/v4"
 )
 
@@ -30,21 +28,16 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	orderNum, err := strconv.Atoi(wdraw.OrderNum)
-	if err != nil {
-		return c.String(http.StatusBadRequest, "status: bad request")
-	}
-
-	if !user.ValidateOrderNumber(orderNum) {
-		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
-	}
-
 	projfin.Context = c.Request().Context()
-	withdraw, err := h.services.Withdraw.Withdraw(username, wdraw.OrderNum, wdraw.Sum)
-	if err != nil {
+	withdraw := h.services.Withdraw.Withdraw(username, wdraw.OrderNum, wdraw.Sum)
+	switch withdraw {
+	case projfin.OrderStatusNotANumber:
+		return c.String(http.StatusBadRequest, "status: bad request")
+	case projfin.OrderStatusNotValid:
+		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
+	case projfin.OrderStatusError:
 		return c.String(http.StatusInternalServerError, "status: internal server error")
-	}
-	if withdraw == 402 {
+	case projfin.OrderStatusPaymentRequired:
 		return c.String(http.StatusPaymentRequired, "status: payment required")
 	}
 
@@ -81,10 +74,5 @@ func (h *Handler) GetWithdrawals(c echo.Context) error {
 		return c.String(http.StatusNoContent, "status: no content")
 	}
 
-	var withdrawals []projfin.WithdrawalsList
-	for _, withdraw := range w {
-		withdrawals = append(withdrawals, projfin.WithdrawalsList{OrderNum: withdraw.OrderNumber, Sum: withdraw.Sum, ProcessedAt: withdraw.ProcessedAt})
-	}
-
-	return c.JSON(http.StatusOK, withdrawals)
+	return c.JSON(http.StatusOK, w)
 }
