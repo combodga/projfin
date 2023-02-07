@@ -6,6 +6,36 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+/*func NewPostgresDB(cfg Config) (*sqlx.DB, error) {
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func NewPostgresDB(cfg string) (*sqlx.DB, error) {
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}*/
+
 func NewPGDB(cfg string) (*sqlx.DB, error) {
 	db, err := sqlx.Open("postgres", cfg)
 	if err != nil {
@@ -47,3 +77,16 @@ func NewPGDB(cfg string) (*sqlx.DB, error) {
 func PGClose(db *sqlx.DB) {
 	db.Close()
 }
+
+/*
+
+	ed := fmt.Errorf("duplicate key error")
+	s := &Store{
+		DB:        db,
+		ErrorDupe: ed,
+		Order:     NewOrderPG(db, ed),
+		User:      NewUserPG(db, ed),
+		Withdraw:  NewWithdrawPG(db),
+	}
+
+*/

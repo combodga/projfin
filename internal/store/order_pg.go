@@ -9,8 +9,6 @@ import (
 	"github.com/lib/pq"
 )
 
-const PGDuplicateCode = "23505"
-
 type OrderPG struct {
 	DB *sqlx.DB
 }
@@ -19,7 +17,7 @@ func NewOrderPG(db *sqlx.DB) *OrderPG {
 	return &OrderPG{DB: db}
 }
 
-func (o *OrderPG) CheckOrder(username, orderNumber string) (projfin.OrderStatus, error) {
+func (o *OrderPG) CheckOrder(username, orderNumber string) (int, error) {
 	order1 := projfin.Order{}
 	sql := "SELECT * FROM orders WHERE order_number = $1"
 	rows, err := o.DB.Queryx(sql, orderNumber)
@@ -30,12 +28,12 @@ func (o *OrderPG) CheckOrder(username, orderNumber string) (projfin.OrderStatus,
 
 	for rows.Next() {
 		if err := rows.StructScan(&order1); err != nil {
-			return projfin.OrderStatusError, fmt.Errorf("store query rows error: %w", err)
+			return 0, fmt.Errorf("store query rows error: %w", err)
 		}
 		if order1.Username == username {
-			return projfin.OrderStatusExists, nil
+			return 1, nil
 		} else if order1.Username != "" {
-			return projfin.OrderStatusOccupied, nil
+			return 2, nil
 		}
 	}
 
@@ -52,7 +50,7 @@ func (o *OrderPG) MakeOrder(username, orderNumber string) error {
 	_, err := o.DB.ExecContext(projfin.Context, sql, orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
-			if err.Code == PGDuplicateCode {
+			if err.Code == "23505" {
 				return ErrorDupe
 			}
 		}

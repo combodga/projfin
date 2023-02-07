@@ -25,7 +25,7 @@ func (h *Handler) PostRegister(c echo.Context) error {
 	}
 
 	projfin.Context = c.Request().Context()
-	err = h.services.User.DoRegister(cred.Username, cred.Password)
+	err = h.services.User.DoRegister(cred.Username, user.PasswordHasher(cred.Password))
 	if errors.Is(err, store.ErrorDupe) {
 		return c.String(http.StatusConflict, "status: conflict")
 	} else if err != nil {
@@ -48,8 +48,9 @@ func (h *Handler) PostLogin(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
+	hash := user.PasswordHasher(cred.Password)
 	projfin.Context = c.Request().Context()
-	err = h.services.User.DoLogin(cred.Username, cred.Password)
+	err = h.services.User.DoLogin(cred.Username, hash)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")
 	}

@@ -29,7 +29,7 @@ func TestHandler_UserRegister(t *testing.T) {
 			name:      "Ok",
 			inputBody: `{"login": "test", "password": "test"}`,
 			username:  "test",
-			password:  "test",
+			password:  "dce472b679aa4d3893d3166dee95725a",
 			mockBehavior: func(r *service_mocks.MockUser, username, password string) {
 				r.EXPECT().DoRegister(username, password).Return(nil)
 			},
@@ -80,7 +80,7 @@ func TestHandler_UserLogin(t *testing.T) {
 			name:      "Ok",
 			inputBody: `{"login": "test", "password": "test"}`,
 			username:  "test",
-			password:  "test",
+			password:  "dce472b679aa4d3893d3166dee95725a",
 			mockBehavior: func(r *service_mocks.MockUser, username, password string) {
 				r.EXPECT().DoLogin(username, password).Return(nil)
 			},
