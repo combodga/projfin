@@ -15,11 +15,9 @@ import (
 
 func FetchAccruals(ctx context.Context, accr string, stores *store.Store) error {
 	for {
-		getAccruals(accr, stores)
-		// time.Sleep(300 * time.Millisecond)
 		select {
 		case <-time.After(300 * time.Millisecond):
-			// pass
+			getAccruals(accr, stores)
 		case <-ctx.Done():
 			return nil
 		}

@@ -10,7 +10,7 @@ import (
 //go:generate mockgen -source=store.go -destination=mocks/mock.go
 
 type Order interface {
-	CheckOrder(username, orderNumber string) (int, error)
+	CheckOrder(username, orderNumber string) (projfin.OrderStatus, error)
 	MakeOrder(username, orderNumber string) error
 	ListOrders(username string) ([]projfin.Order, error)
 	InvalidateOrder(orderNumber string) error

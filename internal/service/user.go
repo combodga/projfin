@@ -1,7 +1,10 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/combodga/projfin/internal/store"
+	"github.com/combodga/projfin/internal/user"
 )
 
 type UserService struct {
@@ -13,9 +16,21 @@ func NewUserService(su store.User) *UserService {
 }
 
 func (s *UserService) DoRegister(username, password string) error {
-	return s.su.DoRegister(username, password)
+	hash := user.PasswordHasher(password)
+	err := s.su.DoRegister(username, hash)
+	if err != nil {
+		return fmt.Errorf("do register service error: %w", err)
+	}
+
+	return nil
 }
 
 func (s *UserService) DoLogin(username, password string) error {
-	return s.su.DoLogin(username, password)
+	hash := user.PasswordHasher(password)
+	err := s.su.DoLogin(username, hash)
+	if err != nil {
+		return fmt.Errorf("do login service error: %w", err)
+	}
+
+	return nil
 }
