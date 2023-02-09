@@ -50,14 +50,14 @@ func Go(run, database, accr string) error {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	// wg.Wait()
-
 	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelServer()
 
 	if err := e.Shutdown(ctxServer); err != nil {
 		log.Printf("server shutdown error: %v", err)
 	}
+
+	wg.Wait()
 
 	store.PGClose(db)
 
