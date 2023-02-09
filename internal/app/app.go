@@ -31,30 +31,31 @@ func Go(run, database, accr string) error {
 	defer cancelAccruals()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 
+	wg.Add(1)
 	go accrual.FetchAccruals(&wg, ctxAccruals, accr, stores)
 
 	e := handlers.InitRoutes()
 
+	wg.Add(1)
 	go func() {
 		if err := e.Start(run); err != nil && err != http.ErrServerClosed {
 			log.Printf("server error: %v", err)
 		}
+		wg.Done()
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	wg.Wait()
+	// wg.Wait()
 
 	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelServer()
 
 	if err := e.Shutdown(ctxServer); err != nil {
 		log.Printf("server shutdown error: %v", err)
-		cancelServer()
 	}
 
 	store.PGClose(db)
