@@ -54,6 +54,7 @@ func Go(run, database, accr string) error {
 
 	if err := e.Shutdown(ctxServer); err != nil {
 		log.Printf("server shutdown error: %v", err)
+		cancelServer()
 	}
 
 	store.PGClose(db)
