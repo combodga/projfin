@@ -28,8 +28,7 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	projfin.Context = c.Request().Context()
-	withdraw := h.services.Withdraw.Withdraw(username, wdraw.OrderNum, wdraw.Sum)
+	withdraw := h.services.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
 	switch withdraw {
 	case projfin.OrderStatusNotANumber:
 		return c.String(http.StatusBadRequest, "status: bad request")

@@ -13,7 +13,7 @@ import (
 
 func Auth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		username, err := user.Get(c)
+		username, err := user.GetAuthCookie(c)
 		if err != nil {
 			return c.String(http.StatusUnauthorized, "status: unauthorized")
 		}

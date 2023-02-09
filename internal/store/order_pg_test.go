@@ -9,42 +9,42 @@ import (
 	sqlmock "github.com/zhashkevych/go-sqlxmock"
 )
 
-func TestUserPG_DoRegister(t *testing.T) {
+func TestOrderPG_MakeOrder(t *testing.T) {
 	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
 
-	u := NewUserPG(db)
+	o := NewOrderPG(db)
 
 	tests := []struct {
-		name     string
-		mock     func()
-		username string
-		password string
-		wantErr  bool
+		name        string
+		mock        func()
+		orderNumber string
+		username    string
+		wantErr     bool
 	}{
 		{
 			name: "Ok",
 			mock: func() {
-				mock.ExpectExec("INSERT INTO users").
-					WithArgs("test", "test").
+				mock.ExpectExec("INSERT INTO orders").
+					WithArgs("1234567", "test").
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
-			username: "test",
-			password: "test",
+			orderNumber: "1234567",
+			username:    "test",
 		},
 		{
 			name: "Empty Fields",
 			mock: func() {
-				mock.ExpectExec("INSERT INTO users").
-					WithArgs("test", "").
-					WillReturnError(fmt.Errorf("user insert error"))
+				mock.ExpectExec("INSERT INTO orders").
+					WithArgs("", "").
+					WillReturnError(fmt.Errorf("order insert error"))
 			},
-			username: "test",
-			password: "",
-			wantErr:  true,
+			orderNumber: "",
+			username:    "",
+			wantErr:     true,
 		},
 	}
 
@@ -52,7 +52,7 @@ func TestUserPG_DoRegister(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock()
 
-			err := u.DoRegister(context.Background(), tt.username, tt.password)
+			err := o.MakeOrder(context.Background(), tt.username, tt.orderNumber)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -63,42 +63,36 @@ func TestUserPG_DoRegister(t *testing.T) {
 	}
 }
 
-func TestUserPG_DoLogin(t *testing.T) {
-	db, mock, err := sqlmock.Newx(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+func TestOrderPG_CheckOrder(t *testing.T) {
+	db, mock, err := sqlmock.Newx()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
 
-	u := NewUserPG(db)
+	o := NewOrderPG(db)
 
 	tests := []struct {
-		name         string
-		mock         func()
-		username     string
-		password     string
-		wantUsername string
-		wantPassword string
-		wantErr      bool
+		name            string
+		mock            func()
+		orderNumber     string
+		username        string
+		wantOrderNumber string
+		wantUsername    string
+		wantErr         bool
 	}{
 		{
 			name: "Ok",
 			mock: func() {
-				mock.ExpectBegin()
-				// mock.ExpectExec("INSERT INTO users").
-				// 	WithArgs("test", "test").
-				// 	WillReturnResult(sqlmock.NewResult(1, 1))
-				db.Exec("INSERT INTO users VALUES ('test', 'test', 0, 0)")
-				rows := sqlmock.NewRows([]string{"COUNT(*)"}).
-					AddRow(1)
-				mock.ExpectQuery("SELECT COUNT(*) FROM users").
-					WithArgs("test", "test").WillReturnRows(rows)
-				mock.ExpectCommit()
+				db.Exec("INSERT INTO orders VALUES ('1234567', 'test', 'NEW', 0, NOW())")
+				rows := sqlmock.NewRows([]string{"order_number", "username", "status", "accrual", "uploaded_at"}).AddRow(1)
+				mock.ExpectQuery("SELECT * FROM orders").WithArgs("1234567", "test").WillReturnRows(rows)
 			},
-			username:     "test",
-			password:     "test",
-			wantUsername: "test",
-			wantPassword: "test",
+			orderNumber:     "",
+			username:        "test",
+			wantOrderNumber: "",
+			wantUsername:    "test",
+			wantErr:         false,
 		},
 		// {
 		// 	name: "Not Found",
@@ -118,7 +112,7 @@ func TestUserPG_DoLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock()
 
-			err := u.DoLogin(context.Background(), tt.username, tt.password)
+			_, err := o.CheckOrder(tt.username, tt.orderNumber)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,7 +32,7 @@ func TestHandler_UserRegister(t *testing.T) {
 			username:  "test",
 			password:  "test",
 			mockBehavior: func(r *service_mocks.MockUser, username, password string) {
-				r.EXPECT().DoRegister(username, password).Return(nil)
+				r.EXPECT().DoRegister(context.Background(), username, password).Return(nil)
 			},
 			expectedStatusCode:   http.StatusOK,
 			expectedResponseBody: "status: ok",
@@ -82,7 +83,7 @@ func TestHandler_UserLogin(t *testing.T) {
 			username:  "test",
 			password:  "test",
 			mockBehavior: func(r *service_mocks.MockUser, username, password string) {
-				r.EXPECT().DoLogin(username, password).Return(nil)
+				r.EXPECT().DoLogin(context.Background(), username, password).Return(nil)
 			},
 			expectedStatusCode:   http.StatusOK,
 			expectedResponseBody: "status: ok",

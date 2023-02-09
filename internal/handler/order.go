@@ -22,7 +22,6 @@ func (h *Handler) PostOrders(c echo.Context) error {
 	}
 
 	order := string(body)
-	projfin.Context = c.Request().Context()
 	orderStatus := h.services.Order.CheckOrder(username, order)
 	switch orderStatus {
 	case projfin.OrderStatusNotANumber:
@@ -37,7 +36,7 @@ func (h *Handler) PostOrders(c echo.Context) error {
 		return c.String(http.StatusOK, "status: ok")
 	}
 
-	err = h.services.Order.MakeOrder(username, order)
+	err = h.services.Order.MakeOrder(c.Request().Context(), username, order)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	}

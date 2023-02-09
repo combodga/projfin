@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/combodga/projfin"
 	"github.com/combodga/projfin/internal/store"
 )
@@ -9,7 +11,7 @@ import (
 
 type Order interface {
 	CheckOrder(username, orderNumber string) projfin.OrderStatus
-	MakeOrder(username, orderNumber string) error
+	MakeOrder(ctx context.Context, username, orderNumber string) error
 	ListOrders(username string) ([]projfin.OrderListItem, error)
 	InvalidateOrder(orderNumber string) error
 	GetOrdersUser(orderNumber string) (projfin.Order, error)
@@ -19,13 +21,13 @@ type Order interface {
 }
 
 type User interface {
-	DoRegister(username, password string) error
-	DoLogin(username, password string) error
+	DoRegister(ctx context.Context, username, password string) error
+	DoLogin(ctx context.Context, username, password string) error
 }
 
 type Withdraw interface {
 	ListWithdrawals(username string) ([]projfin.WithdrawalsListItem, error)
-	Withdraw(username, orderNumber string, sum float64) projfin.OrderStatus
+	Withdraw(ctx context.Context, username, orderNumber string, sum float64) projfin.OrderStatus
 }
 
 type Service struct {

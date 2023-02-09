@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -20,6 +21,9 @@ func NewWithdrawService(sw store.Withdraw) *WithdrawService {
 
 func (s *WithdrawService) ListWithdrawals(username string) ([]projfin.WithdrawalsListItem, error) {
 	w, err := s.sw.ListWithdrawals(username)
+	if err != nil {
+		log.Printf("list withdrawals service error: %v", err)
+	}
 
 	var withdrawals []projfin.WithdrawalsListItem
 	for _, withdraw := range w {
@@ -29,9 +33,10 @@ func (s *WithdrawService) ListWithdrawals(username string) ([]projfin.Withdrawal
 	return withdrawals, err
 }
 
-func (s *WithdrawService) Withdraw(username, orderNumber string, sum float64) projfin.OrderStatus {
+func (s *WithdrawService) Withdraw(ctx context.Context, username, orderNumber string, sum float64) projfin.OrderStatus {
 	orderNumberInt, err := strconv.Atoi(orderNumber)
 	if err != nil {
+		log.Printf("withdraw service error: %v", err)
 		return projfin.OrderStatusNotANumber
 	}
 
@@ -39,7 +44,7 @@ func (s *WithdrawService) Withdraw(username, orderNumber string, sum float64) pr
 		return projfin.OrderStatusNotValid
 	}
 
-	withdraw, err := s.sw.Withdraw(username, orderNumber, sum)
+	withdraw, err := s.sw.Withdraw(ctx, username, orderNumber, sum)
 	if err != nil {
 		log.Printf("withdraw service error: %v", err)
 		return projfin.OrderStatusError

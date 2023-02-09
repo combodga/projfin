@@ -24,15 +24,14 @@ func (h *Handler) PostRegister(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	projfin.Context = c.Request().Context()
-	err = h.services.User.DoRegister(cred.Username, cred.Password)
+	err = h.services.User.DoRegister(c.Request().Context(), cred.Username, cred.Password)
 	if errors.Is(err, store.ErrorDupe) {
 		return c.String(http.StatusConflict, "status: conflict")
 	} else if err != nil {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	user.Set(c, cred.Username)
+	user.SetAuthCookie(c, cred.Username)
 	return c.String(http.StatusOK, "status: ok")
 }
 
@@ -48,12 +47,11 @@ func (h *Handler) PostLogin(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	projfin.Context = c.Request().Context()
-	err = h.services.User.DoLogin(cred.Username, cred.Password)
+	err = h.services.User.DoLogin(c.Request().Context(), cred.Username, cred.Password)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "status: unathorized")
 	}
 
-	user.Set(c, cred.Username)
+	user.SetAuthCookie(c, cred.Username)
 	return c.String(http.StatusOK, "status: ok")
 }

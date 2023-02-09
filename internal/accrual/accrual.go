@@ -7,19 +7,21 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/combodga/projfin"
 	"github.com/combodga/projfin/internal/store"
 )
 
-func FetchAccruals(ctx context.Context, accr string, stores *store.Store) error {
+func FetchAccruals(wg *sync.WaitGroup, ctx context.Context, accr string, stores *store.Store) error {
 	for {
 		select {
 		case <-time.After(300 * time.Millisecond):
 			getAccruals(accr, stores)
 		case <-ctx.Done():
-			return nil
+			wg.Done()
+			return ctx.Err()
 		}
 	}
 }

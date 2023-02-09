@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/combodga/projfin/internal/accrual"
@@ -25,16 +26,19 @@ func Go(run, database, accr string) error {
 	services := service.NewService(stores)
 	handlers := handler.NewHandler(services)
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go accrual.FetchAccruals(ctx, accr, stores)
+	ctxAccruals := context.Background()
+	ctxAccruals, cancelAccruals := context.WithCancel(ctxAccruals)
+	defer cancelAccruals()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go accrual.FetchAccruals(&wg, ctxAccruals, accr, stores)
 
 	e := handlers.InitRoutes()
 
 	go func() {
 		if err := e.Start(run); err != nil && err != http.ErrServerClosed {
-			store.PGClose(db)
 			log.Printf("server error: %v", err)
 		}
 	}()
@@ -42,12 +46,17 @@ func Go(run, database, accr string) error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
-	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel2()
-	if err := e.Shutdown(ctx2); err != nil {
-		store.PGClose(db)
+
+	wg.Wait()
+
+	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelServer()
+
+	if err := e.Shutdown(ctxServer); err != nil {
 		log.Printf("server shutdown error: %v", err)
 	}
+
+	store.PGClose(db)
 
 	return nil
 }

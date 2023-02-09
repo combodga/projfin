@@ -6,6 +6,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const PGDuplicateCode = "23505"
+
 func NewPGDB(cfg string) (*sqlx.DB, error) {
 	db, err := sqlx.Open("postgres", cfg)
 	if err != nil {

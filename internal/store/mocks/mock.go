@@ -5,6 +5,7 @@
 package mock_store
 
 import (
+	context "context"
 	reflect "reflect"
 
 	projfin "github.com/combodga/projfin"
@@ -109,17 +110,17 @@ func (mr *MockOrderMockRecorder) ListOrders(username interface{}) *gomock.Call {
 }
 
 // MakeOrder mocks base method.
-func (m *MockOrder) MakeOrder(username, orderNumber string) error {
+func (m *MockOrder) MakeOrder(ctx context.Context, username, orderNumber string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MakeOrder", username, orderNumber)
+	ret := m.ctrl.Call(m, "MakeOrder", ctx, username, orderNumber)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MakeOrder indicates an expected call of MakeOrder.
-func (mr *MockOrderMockRecorder) MakeOrder(username, orderNumber interface{}) *gomock.Call {
+func (mr *MockOrderMockRecorder) MakeOrder(ctx, username, orderNumber interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeOrder", reflect.TypeOf((*MockOrder)(nil).MakeOrder), username, orderNumber)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeOrder", reflect.TypeOf((*MockOrder)(nil).MakeOrder), ctx, username, orderNumber)
 }
 
 // OrdersProcessing mocks base method.
@@ -175,31 +176,31 @@ func (m *MockUser) EXPECT() *MockUserMockRecorder {
 }
 
 // DoLogin mocks base method.
-func (m *MockUser) DoLogin(username, password string) error {
+func (m *MockUser) DoLogin(ctx context.Context, username, password string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoLogin", username, password)
+	ret := m.ctrl.Call(m, "DoLogin", ctx, username, password)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DoLogin indicates an expected call of DoLogin.
-func (mr *MockUserMockRecorder) DoLogin(username, password interface{}) *gomock.Call {
+func (mr *MockUserMockRecorder) DoLogin(ctx, username, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoLogin", reflect.TypeOf((*MockUser)(nil).DoLogin), username, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoLogin", reflect.TypeOf((*MockUser)(nil).DoLogin), ctx, username, password)
 }
 
 // DoRegister mocks base method.
-func (m *MockUser) DoRegister(username, password string) error {
+func (m *MockUser) DoRegister(ctx context.Context, username, password string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoRegister", username, password)
+	ret := m.ctrl.Call(m, "DoRegister", ctx, username, password)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DoRegister indicates an expected call of DoRegister.
-func (mr *MockUserMockRecorder) DoRegister(username, password interface{}) *gomock.Call {
+func (mr *MockUserMockRecorder) DoRegister(ctx, username, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoRegister", reflect.TypeOf((*MockUser)(nil).DoRegister), username, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoRegister", reflect.TypeOf((*MockUser)(nil).DoRegister), ctx, username, password)
 }
 
 // MockWithdraw is a mock of Withdraw interface.
@@ -241,16 +242,16 @@ func (mr *MockWithdrawMockRecorder) ListWithdrawals(username interface{}) *gomoc
 }
 
 // Withdraw mocks base method.
-func (m *MockWithdraw) Withdraw(username, orderNumber string, sum float64) (int, error) {
+func (m *MockWithdraw) Withdraw(ctx context.Context, username, orderNumber string, sum float64) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Withdraw", username, orderNumber, sum)
+	ret := m.ctrl.Call(m, "Withdraw", ctx, username, orderNumber, sum)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Withdraw indicates an expected call of Withdraw.
-func (mr *MockWithdrawMockRecorder) Withdraw(username, orderNumber, sum interface{}) *gomock.Call {
+func (mr *MockWithdrawMockRecorder) Withdraw(ctx, username, orderNumber, sum interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdraw", reflect.TypeOf((*MockWithdraw)(nil).Withdraw), username, orderNumber, sum)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Withdraw", reflect.TypeOf((*MockWithdraw)(nil).Withdraw), ctx, username, orderNumber, sum)
 }

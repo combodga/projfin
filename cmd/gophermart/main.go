@@ -24,6 +24,6 @@ func main() {
 
 	err := app.Go(run, db, accr)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("gophermart error: %v", err)
 	}
 }

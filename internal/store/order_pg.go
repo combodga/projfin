@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/combodga/projfin"
@@ -8,8 +9,6 @@ import (
 
 	"github.com/lib/pq"
 )
-
-const PGDuplicateCode = "23505"
 
 type OrderPG struct {
 	DB *sqlx.DB
@@ -47,9 +46,9 @@ func (o *OrderPG) CheckOrder(username, orderNumber string) (projfin.OrderStatus,
 	return projfin.OrderStatusOK, nil
 }
 
-func (o *OrderPG) MakeOrder(username, orderNumber string) error {
+func (o *OrderPG) MakeOrder(ctx context.Context, username, orderNumber string) error {
 	sql := "INSERT INTO orders VALUES ($1, $2, 'NEW', 0, NOW())"
-	_, err := o.DB.ExecContext(projfin.Context, sql, orderNumber, username)
+	_, err := o.DB.ExecContext(ctx, sql, orderNumber, username)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code == PGDuplicateCode {

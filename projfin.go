@@ -1,11 +1,5 @@
 package projfin
 
-import "context"
-
-var (
-	Context context.Context
-)
-
 type OrderStatus int
 
 const (
