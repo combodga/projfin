@@ -42,6 +42,7 @@ func Go(run, database, accr string) error {
 		if err := e.Start(run); err != nil && err != http.ErrServerClosed {
 			log.Printf("server error: %v", err)
 		}
+		cancelAccruals()
 		wg.Done()
 	}()
 
@@ -49,7 +50,7 @@ func Go(run, database, accr string) error {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	// wg.Wait()
+	wg.Wait()
 
 	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelServer()
