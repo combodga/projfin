@@ -50,7 +50,7 @@ func Go(run, database, accr string) error {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	wg.Wait()
+	// wg.Wait()
 
 	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelServer()
