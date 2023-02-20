@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
 	"github.com/combodga/projfin/internal/app"
@@ -17,8 +18,12 @@ func main() {
 	flag.StringVar(&accr, "r", os.Getenv("ACCRUAL_SYSTEM_ADDRESS"), "accrual system address")
 	flag.Parse()
 
+	if run == "" {
+		run = ":8080"
+	}
+
 	err := app.Go(run, db, accr)
 	if err != nil {
-		panic(err)
+		log.Printf("gophermart error: %v", err)
 	}
 }

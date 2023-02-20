@@ -1,36 +1,65 @@
 package app
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"time"
 
+	"github.com/combodga/projfin/internal/accrual"
 	"github.com/combodga/projfin/internal/handler"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/combodga/projfin/internal/service"
+	"github.com/combodga/projfin/internal/store"
 )
 
 func Go(run, database, accr string) error {
-	h, err := handler.New(database, accr)
+	db, err := store.NewPGDB(database)
 	if err != nil {
-		return fmt.Errorf("error handler init: %w", err)
+		return fmt.Errorf("error initializing db: %w", err)
 	}
 
-	e := echo.New()
-	e.Use(middleware.Gzip())
-	e.Use(middleware.Decompress())
+	stores := store.NewStore(db)
+	services := service.NewService(stores)
+	handlers := handler.NewHandler(services)
 
-	e.POST("/api/user/register", h.PostRegister)
-	e.POST("/api/user/login", h.PostLogin)
-	e.POST("/api/user/orders", h.PostOrders)
-	e.POST("/api/user/balance/withdraw", h.PostBalanceWithdraw)
+	ctxAccruals := context.Background()
+	ctxAccruals, cancelAccruals := context.WithCancel(ctxAccruals)
 
-	e.GET("/api/user/orders", h.GetOrders)
-	e.GET("/api/user/balance", h.GetBalance)
-	e.GET("/api/user/withdrawals", h.GetWithdrawals)
+	var wg sync.WaitGroup
 
-	e.Logger.Fatal(e.Start(run))
+	wg.Add(1)
+	go accrual.FetchAccruals(&wg, ctxAccruals, accr, stores)
 
-	go h.GetAccruals()
+	e := handlers.InitRoutes()
+
+	wg.Add(1)
+	go func() {
+		if err := e.Start(run); err != nil && err != http.ErrServerClosed {
+			log.Printf("server error: %v", err)
+		}
+		cancelAccruals()
+		wg.Done()
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	cancelAccruals()
+
+	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelServer()
+
+	if err := e.Shutdown(ctxServer); err != nil {
+		log.Printf("server shutdown error: %v", err)
+	}
+
+	wg.Wait()
+
+	store.PGClose(db)
 
 	return nil
 }

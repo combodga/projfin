@@ -13,7 +13,7 @@ import (
 
 var key = "gophermart secret user key"
 
-func Set(c echo.Context, user string) {
+func SetAuthCookie(c echo.Context, user string) {
 	sign, err := cookie.Read(c, "sign")
 	if err == nil && sign == getSign(user) {
 		return
@@ -23,7 +23,7 @@ func Set(c echo.Context, user string) {
 	cookie.Write(c, "sign", getSign(user))
 }
 
-func Get(c echo.Context) (string, error) {
+func GetAuthCookie(c echo.Context) (string, error) {
 	user, err := cookie.Read(c, "user")
 	sign, err1 := cookie.Read(c, "sign")
 	if err == nil && err1 == nil && sign == getSign(user) {
