@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/combodga/projfin"
@@ -28,13 +29,14 @@ func (h *Handler) PostBalanceWithdraw(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "status: bad request")
 	}
 
-	withdraw := h.services.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
+	withdraw, err := h.services.Withdraw.Withdraw(c.Request().Context(), username, wdraw.OrderNum, wdraw.Sum)
 	switch withdraw {
 	case projfin.OrderStatusNotANumber:
 		return c.String(http.StatusBadRequest, "status: bad request")
 	case projfin.OrderStatusNotValid:
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	case projfin.OrderStatusError:
+		log.Printf("withdraw service order status error: %v", err)
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	case projfin.OrderStatusPaymentRequired:
 		return c.String(http.StatusPaymentRequired, "status: payment required")

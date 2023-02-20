@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -20,39 +20,38 @@ func NewWithdrawService(sw store.Withdraw) *WithdrawService {
 }
 
 func (s *WithdrawService) ListWithdrawals(username string) ([]projfin.WithdrawalsListItem, error) {
+	var withdrawals []projfin.WithdrawalsListItem
+
 	w, err := s.sw.ListWithdrawals(username)
 	if err != nil {
-		log.Printf("list withdrawals service error: %v", err)
+		return withdrawals, fmt.Errorf("list withdrawals service error: %w", err)
 	}
 
-	var withdrawals []projfin.WithdrawalsListItem
 	for _, withdraw := range w {
 		withdrawals = append(withdrawals, projfin.WithdrawalsListItem{OrderNum: withdraw.OrderNumber, Sum: withdraw.Sum, ProcessedAt: withdraw.ProcessedAt})
 	}
 
-	return withdrawals, err
+	return withdrawals, nil
 }
 
-func (s *WithdrawService) Withdraw(ctx context.Context, username, orderNumber string, sum float64) projfin.OrderStatus {
+func (s *WithdrawService) Withdraw(ctx context.Context, username, orderNumber string, sum float64) (projfin.OrderStatus, error) {
 	orderNumberInt, err := strconv.Atoi(orderNumber)
 	if err != nil {
-		log.Printf("withdraw service error: %v", err)
-		return projfin.OrderStatusNotANumber
+		return projfin.OrderStatusNotANumber, fmt.Errorf("withdraw service error: %w", err)
 	}
 
 	if !user.ValidateOrderNumber(orderNumberInt) {
-		return projfin.OrderStatusNotValid
+		return projfin.OrderStatusNotValid, nil
 	}
 
 	withdraw, err := s.sw.Withdraw(ctx, username, orderNumber, sum)
 	if err != nil {
-		log.Printf("withdraw service error: %v", err)
-		return projfin.OrderStatusError
+		return projfin.OrderStatusError, fmt.Errorf("withdraw service error: %w", err)
 	}
 
 	if withdraw == http.StatusPaymentRequired {
-		return projfin.OrderStatusPaymentRequired
+		return projfin.OrderStatusPaymentRequired, nil
 	}
 
-	return projfin.OrderStatusOK
+	return projfin.OrderStatusOK, nil
 }

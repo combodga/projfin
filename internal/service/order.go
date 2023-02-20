@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strconv"
 
 	"github.com/combodga/projfin"
@@ -18,75 +18,75 @@ func NewOrderService(so store.Order) *OrderService {
 	return &OrderService{so: so}
 }
 
-func (s *OrderService) CheckOrder(username, orderNumber string) projfin.OrderStatus {
+func (s *OrderService) CheckOrder(username, orderNumber string) (projfin.OrderStatus, error) {
 	orderNumberInt, err := strconv.Atoi(orderNumber)
 	if err != nil {
-		return projfin.OrderStatusNotANumber
+		return projfin.OrderStatusNotANumber, fmt.Errorf("order number int error: %w", err)
 	}
 
 	if !user.ValidateOrderNumber(orderNumberInt) {
-		return projfin.OrderStatusNotValid
+		return projfin.OrderStatusNotValid, nil
 	}
 
 	orderStatus, err := s.so.CheckOrder(username, orderNumber)
 	if err != nil {
-		log.Printf("check order error: %v", err)
-		return projfin.OrderStatusError
+		return projfin.OrderStatusError, fmt.Errorf("check order error: %w", err)
 	}
 
-	return orderStatus
+	return orderStatus, nil
 }
 
 func (s *OrderService) MakeOrder(ctx context.Context, username, orderNumber string) error {
 	err := s.so.MakeOrder(ctx, username, orderNumber)
 	if err != nil {
-		log.Printf("make order service error: %v", err)
+		return fmt.Errorf("make order service error: %w", err)
 	}
-	return err
+	return nil
 }
 
 func (s *OrderService) ListOrders(username string) ([]projfin.OrderListItem, error) {
+	var ordersList []projfin.OrderListItem
+
 	orders, err := s.so.ListOrders(username)
 	if err != nil {
-		log.Printf("list orders service error: %v", err)
+		return ordersList, fmt.Errorf("list orders service error: %w", err)
 	}
 
-	var ordersList []projfin.OrderListItem
 	for _, o := range orders {
 		ordersList = append(ordersList, projfin.OrderListItem{Number: o.OrderNumber, Status: o.Status, Accrual: o.Accrual, UploadedAt: o.UploadedAt})
 	}
 
-	return ordersList, err
+	return ordersList, nil
 }
 
 func (s *OrderService) InvalidateOrder(orderNumber string) error {
 	err := s.so.InvalidateOrder(orderNumber)
 	if err != nil {
-		log.Printf("invalidate order service error: %v", err)
+		return fmt.Errorf("invalidate order service error: %w", err)
 	}
-	return err
+	return nil
 }
 
 func (s *OrderService) GetOrdersUser(orderNumber string) (projfin.Order, error) {
 	order, err := s.so.GetOrdersUser(orderNumber)
 	if err != nil {
-		log.Printf("get orders user service error: %v", err)
+		return order, fmt.Errorf("get orders user service error: %w", err)
 	}
-	return order, err
+	return order, nil
 }
 
 func (s *OrderService) ProcessOrder(orderNumber string, accrual float64) error {
 	err := s.so.ProcessOrder(orderNumber, accrual)
 	if err != nil {
-		log.Printf("process order service error: %v", err)
+		return fmt.Errorf("process order service error: %w", err)
 	}
-	return err
+	return nil
 }
 
 func (s *OrderService) OrdersProcessing() ([]projfin.Order, error) {
 	orders, err := s.so.OrdersProcessing()
 	if err != nil {
-		log.Printf("orders processing service error: %v", err)
+		return orders, fmt.Errorf("orders processing service error: %w", err)
 	}
 	return orders, err
 }
@@ -94,7 +94,7 @@ func (s *OrderService) OrdersProcessing() ([]projfin.Order, error) {
 func (s *OrderService) GetUserBalance(username string) (projfin.User, error) {
 	user, err := s.so.GetUserBalance(username)
 	if err != nil {
-		log.Printf("get user balance service error: %v", err)
+		return user, fmt.Errorf("get user balance service error: %w", err)
 	}
-	return user, err
+	return user, nil
 }

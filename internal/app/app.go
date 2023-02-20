@@ -28,7 +28,6 @@ func Go(run, database, accr string) error {
 
 	ctxAccruals := context.Background()
 	ctxAccruals, cancelAccruals := context.WithCancel(ctxAccruals)
-	defer cancelAccruals()
 
 	var wg sync.WaitGroup
 
@@ -49,6 +48,7 @@ func Go(run, database, accr string) error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
+	cancelAccruals()
 
 	ctxServer, cancelServer := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelServer()

@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/combodga/projfin"
@@ -22,13 +23,14 @@ func (h *Handler) PostOrders(c echo.Context) error {
 	}
 
 	order := string(body)
-	orderStatus := h.services.Order.CheckOrder(username, order)
+	orderStatus, err := h.services.Order.CheckOrder(username, order)
 	switch orderStatus {
 	case projfin.OrderStatusNotANumber:
 		return c.String(http.StatusBadRequest, "status: bad request")
 	case projfin.OrderStatusNotValid:
 		return c.String(http.StatusUnprocessableEntity, "status: unprocessable entity")
 	case projfin.OrderStatusError:
+		log.Printf("check order service order status error: %v", err)
 		return c.String(http.StatusInternalServerError, "status: internal server error")
 	case projfin.OrderStatusOccupied:
 		return c.String(http.StatusConflict, "status: conflict")

@@ -36,11 +36,12 @@ func (m *MockOrder) EXPECT() *MockOrderMockRecorder {
 }
 
 // CheckOrder mocks base method.
-func (m *MockOrder) CheckOrder(username, orderNumber string) projfin.OrderStatus {
+func (m *MockOrder) CheckOrder(username, orderNumber string) (projfin.OrderStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckOrder", username, orderNumber)
 	ret0, _ := ret[0].(projfin.OrderStatus)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CheckOrder indicates an expected call of CheckOrder.
@@ -241,11 +242,12 @@ func (mr *MockWithdrawMockRecorder) ListWithdrawals(username interface{}) *gomoc
 }
 
 // Withdraw mocks base method.
-func (m *MockWithdraw) Withdraw(ctx context.Context, username, orderNumber string, sum float64) projfin.OrderStatus {
+func (m *MockWithdraw) Withdraw(ctx context.Context, username, orderNumber string, sum float64) (projfin.OrderStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Withdraw", ctx, username, orderNumber, sum)
 	ret0, _ := ret[0].(projfin.OrderStatus)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Withdraw indicates an expected call of Withdraw.

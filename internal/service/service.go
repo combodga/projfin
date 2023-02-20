@@ -10,7 +10,7 @@ import (
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type Order interface {
-	CheckOrder(username, orderNumber string) projfin.OrderStatus
+	CheckOrder(username, orderNumber string) (projfin.OrderStatus, error)
 	MakeOrder(ctx context.Context, username, orderNumber string) error
 	ListOrders(username string) ([]projfin.OrderListItem, error)
 	InvalidateOrder(orderNumber string) error
@@ -27,7 +27,7 @@ type User interface {
 
 type Withdraw interface {
 	ListWithdrawals(username string) ([]projfin.WithdrawalsListItem, error)
-	Withdraw(ctx context.Context, username, orderNumber string, sum float64) projfin.OrderStatus
+	Withdraw(ctx context.Context, username, orderNumber string, sum float64) (projfin.OrderStatus, error)
 }
 
 type Service struct {

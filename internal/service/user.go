@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/combodga/projfin/internal/store"
 	"github.com/combodga/projfin/internal/user"
@@ -21,7 +20,6 @@ func (s *UserService) DoRegister(ctx context.Context, username, password string)
 	hash := user.PasswordHasher(password)
 	err := s.su.DoRegister(ctx, username, hash)
 	if err != nil {
-		log.Printf("do register service error: %v", err)
 		return fmt.Errorf("do register service error: %w", err)
 	}
 
@@ -32,7 +30,6 @@ func (s *UserService) DoLogin(ctx context.Context, username, password string) er
 	hash := user.PasswordHasher(password)
 	err := s.su.DoLogin(ctx, username, hash)
 	if err != nil {
-		log.Printf("do login service error: %v", err)
 		return fmt.Errorf("do login service error: %w", err)
 	}
 
